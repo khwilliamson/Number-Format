@@ -105,7 +105,7 @@ use POSIX qw(locale_h);
 		vars => \@EXPORT_VARS,
 		all  => [ @EXPORT_SUBS, @EXPORT_VARS ]);
 
-$VERSION = '1.10';
+$VERSION = '1.12';
 
 $DECIMAL_POINT   = '.';
 $THOUSANDS_SEP   = ',';
@@ -241,6 +241,7 @@ sub round
 {
     my ($self, $number, $precision) = _get_self @_;
     $precision = 2 unless defined $precision;
+    $number    = 0 unless defined $number;
     my $multiplier = (10 ** $precision);
     return int(($number * $multiplier) + .5) / $multiplier;
 }
@@ -288,7 +289,9 @@ sub format_number
     $integer =~ s/^0+\Q$self->{thousands_sep}\E?//;
 
     # Combine integer and decimal parts and return the result.
-    join($self->{decimal_point}, $integer, $decimal);
+    return ((defined $decimal) ? 
+	    join($self->{decimal_point}, $integer || '', $decimal) :
+	    $integer);
 }
 
 ##----------------------------------------------------------------------

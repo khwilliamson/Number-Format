@@ -1,6 +1,6 @@
 Number::Format - Convert numbers to strings with pretty formatting
 
-Version: 1.10
+Version: 1.12
 
 WHAT IS IT
 
@@ -45,7 +45,11 @@ later for details of copy and distribution terms.
 
 CHANGE HISTORY
 
-This is version 1.10:
+This is version 1.12:
+
+* Remove 'use of undefined value' warnings when used with perl -w
+
+version 1.10:
 
 * Add object oriented interface and support for POSIX locales.
 
