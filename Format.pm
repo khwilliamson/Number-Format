@@ -55,8 +55,8 @@ formatting engine.  Valid parameters are:
   DECIMAL_FILL	    - boolean; whether to add zeroes to fill out decimal
   NEG_FORMAT	    - format to display negative numbers (def ``-x'')
   KILO_SUFFIX	    - suffix to add when format_bytes formats kilobytes
-  MEGA_SUFFIX	    -    "    "  "    "        "         "    megabytes
-  GIGA_SUFFIX	    -    "    "  "    "        "         "    gigabytes
+  MEGA_SUFFIX	    -	 "    "	 "    "	       "	 "    megabytes
+  GIGA_SUFFIX	    -	 "    "	 "    "	       "	 "    gigabytes
 
 They may be specified in upper or lower case, with or without a
 leading hyphen ( - ).
@@ -66,7 +66,7 @@ C<MON_THOUSANDS_SEP>, C<MON_DECIMAL_POINT>, and C<INT_CURR_SYMBOL>
 come from the POSIX locale information (see L<perllocale>), if
 available.  If your POSIX locale does not provide C<MON_THOUSANDS_SEP>
 and/or C<MON_DECIMAL_POINT> fields, then the C<THOUSANDS_SEP> and/or
-C<DECIMAL_POINT> values are used for those parameters.  Some systems
+C<DECIMAL_POINT> values are used for those parameters.	Some systems
 (e.g. Win32 ports of Perl) do not include POSIX support.  In those
 systems, the POSIX system is bypassed.
 
@@ -190,7 +190,7 @@ BEGIN
 		vars => \@EXPORT_VARS,
 		all  => [ @EXPORT_SUBS, @EXPORT_VARS ]);
 
-$VERSION = '1.43';
+$VERSION = '1.44';
 
 $DECIMAL_POINT	 = '.';
 $THOUSANDS_SEP	 = ',';
@@ -381,7 +381,7 @@ specifier; trailing zeroes will only appear in the output if
 C<$trailing_zeroes> is provided, or the parameter C<DECIMAL_FILL> is
 set, with a value that is true (not zero, undef, or the empty string).
 If C<$precision> is omitted, the value of the C<DECIMAL_DIGITS>
-parameter (default value of 2) is used.  Examples:
+parameter (default value of 2) is used.	 Examples:
 
   format_number(12345.6789)	 yields	  '12,345.68'
   format_number(123456.789, 2)	 yields	  '123,456.79'
@@ -410,7 +410,15 @@ sub format_number
     $number = $self->round($number, $precision); # round off $number
 
     # Split integer and decimal parts of the number and add commas
-    my ($integer, $decimal) = split(/\./, $number, 2);
+    my $integer = int($number);
+    my $decimal;
+
+    # Note: In perl 5.6 and up, string representation of a number
+    # automagically includes the locale decimal point.  This way we
+    # will detect the decimal part correctly as long as the decimal
+    # point is 1 character.
+    $decimal = substr($number, length($integer)+1)
+	if (length($integer) < length($number));
     $decimal = '' unless defined $decimal;
 
     # Add trailing 0's if $trailing_zeroes is set.
@@ -484,7 +492,7 @@ commas (see the first example above).  There may not be more than one
 instance of C<DECIMAL_POINT> in C<$picture>.
 
 The value of C<NEG_FORMAT> is used to determine how negative numbers
-are displayed.  The result of this is that the output of this function
+are displayed.	The result of this is that the output of this function
 my have unexpected spaces before and/or after the number.  This is
 necessary so that positive and negative numbers are formatted into a
 space the same size.  If you are only using positive numbers and want
@@ -499,7 +507,7 @@ sub format_picture
 
     # Handle negative numbers
     my($neg_prefix) = $self->{neg_format} =~ /^([^x]+)/;
-    my($pic_prefix) = $picture            =~ /^([^\#]+)/;
+    my($pic_prefix) = $picture		  =~ /^([^\#]+)/;
     my $neg_pic = $self->{neg_format};
     (my $pos_pic = $self->{neg_format}) =~ s/[^x\s]/ /g;
     (my $pos_prefix = $neg_prefix) =~ s/[^x\s]/ /g;
@@ -580,7 +588,7 @@ sub format_picture
     # Combine @result into a string and return it.
     my $result = join('', @result);
     $sign_prefix = '' unless defined $sign_prefix;
-    $pic_prefix  = '' unless defined $pic_prefix;
+    $pic_prefix	 = '' unless defined $pic_prefix;
     $result =~ s/^(\Q$sign_prefix\E)(\Q$pic_prefix\E)(\s*)/$2$3$1/;
     $result;
 }

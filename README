@@ -1,6 +1,6 @@
 Number::Format - Convert numbers to strings with pretty formatting
 
-Version: 1.43
+Version: 1.44
 
 WHAT IS IT
 
@@ -71,6 +71,13 @@ later for details of copy and distribution terms.
 
 
 CHANGE HISTORY
+
+Changes for version 1.44 (Dec 11, 2001)
+------------------------
+
+  - Fix bug in format_number caused by the fact that under Perl 5.6,
+    the string representation of a number respects the decimal point
+    defined by the locale.
 
 Changes for version 1.43 (Dec 10, 2001)
 ------------------------
