@@ -7,9 +7,9 @@
 # Change 1..1 below to 1..last_test_to_print .
 # (It may become useful if the test is moved to ./t subdirectory.)
 
-BEGIN { $| = 1; print "1..7\n"; }
+BEGIN { $| = 1; print "1..5\n"; }
 END {print "not ok 1\n" unless $loaded;}
-use Number::Format qw(:subs);
+use Number::Format;
 $loaded = 1;
 print "ok 1\n";
 
@@ -19,23 +19,17 @@ print "ok 1\n";
 # (correspondingly "not ok 13") depending on the success of chunk 13
 # of the test code):
 
-$pic = 'US$##,###,###.##';
-
-print "not " unless (format_picture(123456.512, $pic) eq 'US$   123,456.51');
+my $deutsch = new Number::Format(-thousands_sep   => '.',
+				 -decimal_point   => ',',
+				 -int_curr_symbol => 'DEM ');
+print "not " unless defined $deutsch && ref $deutsch eq 'Number::Format';
 print "ok 2\n";
 
-print "not " unless (format_picture(1234567.509, $pic) eq 'US$ 1,234,567.51');
+print "not " unless $deutsch->format_number(1234567.509, 2) eq '1.234.567,51';
 print "ok 3\n";
 
-print "not " unless (format_picture(12345678.5, $pic) eq 'US$12,345,678.50');
+print "not " unless $deutsch->format_number(12345678.5, 2) eq '12.345.678,5';
 print "ok 4\n";
 
-print "not " unless (format_picture(123456789.51, $pic) eq 'US$**,***,***.**');
+print "not " unless $deutsch->format_number(1.23456789, 6) eq '1,234568';
 print "ok 5\n";
-
-print "not " unless (format_picture(1023012.34, $pic) eq 'US$ 1,023,012.34');
-print "ok 6\n";
-
-print "not " unless (format_picture(120450.789012, $pic) eq 'US$   120,450.79');
-print "ok 7\n";
-

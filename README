@@ -1,6 +1,6 @@
 Number::Format - Convert numbers to strings with pretty formatting
 
-Version: 1.12
+Version: 1.30
 
 WHAT IS IT
 
@@ -20,8 +20,8 @@ the PRINT USING statement that some versions of BASIC have.
 
 BUILDING/INSTALLING
 
-This package is set up to configure and build like a typical Perl
-extension.  To build:
+Perl version 5.003 or higher is required.  This package is set up to
+configure and build like a typical Perl extension.  To build:
 
         perl Makefile.PL
 	make && make test && make install
@@ -35,6 +35,15 @@ PROBLEMS/BUG REPORTS
 Please send any reports of problems or bugs to wrw@bayview.com.
 
 
+MAILING LIST
+
+We have an electronic mailing list for announcements of new releases
+of this module.  To join send mail to majordomo@bayview.com with the
+command in the body of the message:
+
+	subscribe number-format-announce
+
+
 CREDITS AND LICENSES
 
 This package is copyright 1997-8 by William R. Ward <wrw@bayview.com>
@@ -45,7 +54,28 @@ later for details of copy and distribution terms.
 
 CHANGE HISTORY
 
-This is version 1.12:
+version 1.30:
+
+* Fix several major bugs, including the POSIX-not-required issue, as
+  well as better support for negative values.
+* Add setting for default size of decimal area so you don't have to
+  specify the number of digits if it's other than 2.
+* Add setting and function to display negative numbers in different
+  formats.
+* Add setting to force trailing 0's in the decimal portion to fill out
+  the number of digits required.
+* Fix problem where 0's inside format_picture()'s output were being
+  replaced with spaces.
+* Add 0 before decimal point if number is between -1 and 1.
+
+version 1.20:
+
+* Make POSIX no longer required (users on MicroSoft systems sometimes
+  don't have it); uses US defaults if no POSIX.pm found.
+* Add new optional third argument to format_number() to add trailing
+  zeroes.
+ 
+version 1.12:
 
 * Remove 'use of undefined value' warnings when used with perl -w
 

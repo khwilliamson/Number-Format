@@ -1,0 +1,35 @@
+Changes for version 1.30
+------------------------
+
+Sat Oct 31 01:25:57 PST 1998
+  - Fix errors with supposedly-optional POSIX
+
+Mon Sep 28 09:23:18 PDT 1998
+  - From: Yair Lenga <yair@bpa1.sbi.com>
+    Suggested adding controls to pad out result of format_number with
+    zeroes as well as the ability to present negative numbers with
+    parentheses.  Provided a patch which was useful in constructing a
+    solution.
+
+Tue Sep 15 10:12:55 PDT 1998
+  - Add test for defined() from patch by IMAZU Hideyo <himazu@ms.com>
+
+Wed Sep	 9 03:09:27 PDT 1998
+  - From: "Joseph Norton" <namaste1_@hotmail.com>
+    Bugs in format_number(): processed negative numbers incorrectly,
+    and lacked the zero before the decimal point if number is between
+    0 and 1.
+
+Changes for version 1.20
+------------------------
+
+Mon Aug 31 19:04:01 PDT 1998
+  - Make POSIX optional
+  - Add option to always display trailing zeroes in format_number
+
+Changes for version 1.10
+------------------------
+
+Fri Nov 21 14:13:30 PST 1997
+  - Add Locale support to set the default values for $THOUSANDS_SEP,
+    $DECIMAL_SEP, and $CURRENCY based on the user's locale.

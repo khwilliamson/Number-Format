@@ -9,16 +9,26 @@ Number::Format - Perl extension for formatting numbers
 =head1 SYNOPSIS
 
   use Number::Format;
+  my $x = new Number::Format %args;
+  $formatted = $x->round($number, $precision);
+  $formatted = $x->format_number($number, $precision, $trailing_zeroes);
+  $formatted = $x->format_negative($number, $picture);
+  $formatted = $x->format_picture($number, $picture);
+  $formatted = $x->format_price($number, $precision);
+  $number    = $x->unformat_number($formatted);
   
-  $rounded = round($number, $precision);
-  $formatted = format_number($number, $precision);
+  use Number::Format qw(:subs);
+  $formatted = round($number, $precision);
+  $formatted = format_number($number, $precision, $trailing_zeroes);
+  $formatted = format_negative($number, $picture);
   $formatted = format_picture($number, $picture);
   $formatted = format_price($number, $precision);
-  $number = unformat_number($formatted);
+  $number    = unformat_number($formatted);
 
 =head1 REQUIRES
 
-Perl, version 5.003 or higher.
+Perl, version 5.003 or higher.  Does not utilize any other Perl
+modules.
 
 =head1 DESCRIPTION
 
@@ -36,6 +46,9 @@ formatting engine.  Valid parameters are:
   MON_THOUSANDS_SEP - like THOUSANDS_SEP, but used for format_price
   MON_DECIMAL_POINT - like DECIMAL_POINT, but used for format_price
   INT_CURR_SYMBOL   - character(s) denoting currency (see format_price())
+  DECIMAL_DIGITS    - number of digits to the right of dec point (def 2)
+  DECIMAL_FILL      - boolean; whether to add zeroes to fill out decimal
+  NEG_FORMAT        - format to display negative numbers (def ``-x'')
 
 They may be specified in upper or lower case, with or without a
 leading hyphen ( - ).  The defaults come from the POSIX locale
@@ -53,6 +66,26 @@ C<:vars> keyword on your C<use Number::Format> line (see
 non-object-oriented example below) you will import those variables
 into your namesapce and can assign values as if they were your own
 local variables.
+
+Note however that when you first call one of the functions in this
+module I<without> using the object-oriented interface, further setting
+of those global variables will have no effect on non-OO calls.  It is
+recommended that you use the object-oriented interface instead for
+fewer headaches and a cleaner design.
+
+The C<decimal_fill> and C<decimal_digits> values are not set by the
+Locale system, but are definable by the user.  They affect the output
+of C<format_number()>.  Setting C<decimal_digits> is like giving that
+value as the C<$precision> argument to that function.  Setting
+C<decimal_fill> to a true value causes C<format_number()> to append
+zeroes to the right of the decimal digits until the length is the
+specified number of digits.
+
+C<neg_format> is only used by C<format_negative()> and is a string
+containing the letter 'x', where that letter will be replaced by a
+positive representation of the number being passed to that function.
+C<format_number()> and C<format_price()> utilize this feature by
+calling C<format_negative()> if the number was less than 0.
 
 The only restrictions on C<decimal_point> and C<thousands_sep> are that
 they must not be digits, must not be identical, and must each be one
@@ -89,27 +122,59 @@ you can use the tag C<:all>.
 ###---------------------------------------------------------------------
 
 use strict;
-
-use vars qw($VERSION @ISA $DECIMAL_POINT $THOUSANDS_SEP $INT_CURR_SYMBOL
-	    @EXPORT_SUBS @EXPORT_VARS @EXPORT_OK %EXPORT_TAGS);
+use vars qw($DECIMAL_DIGITS $DECIMAL_FILL $DECIMAL_POINT
+	    $DEFAULT_LOCALE $INT_CURR_SYMBOL $NEG_FORMAT $POSIX_LOADED
+	    $THOUSANDS_SEP $VERSION %EXPORT_TAGS @EXPORT_OK
+	    @EXPORT_SUBS @EXPORT_VARS @ISA);
 use Exporter;
-use POSIX qw(locale_h);
+
+BEGIN
+{
+    eval { require POSIX; POSIX->import( qw(locale_h) ) };
+    if ($@)
+    {
+	# code to provide alternate definitions for POSIX functions
+	*localeconv = sub { $DEFAULT_LOCALE }; # return default
+	*setlocale  = sub { };	#  do nothing
+	*LC_ALL = sub { };	#  do nothing
+	$POSIX_LOADED = 0;
+    }
+    else
+    {
+	$POSIX_LOADED = 1;
+    }
+}
 
 @ISA     = qw(Exporter);
 
-@EXPORT_SUBS = qw(format_number format_picture format_price round
-		  unformat_number);
-@EXPORT_VARS = qw($DECIMAL_POINT $THOUSANDS_SEP $INT_CURR_SYMBOL);
+@EXPORT_SUBS = qw(format_number format_negative format_picture
+		  format_price round unformat_number);
+@EXPORT_VARS = qw($DECIMAL_DIGITS $DECIMAL_FILL $DECIMAL_POINT
+		  $DEFAULT_LOCALE $INT_CURR_SYMBOL $POSIX_LOADED
+		  $THOUSANDS_SEP);
 @EXPORT_OK   = (@EXPORT_SUBS, @EXPORT_VARS);
 %EXPORT_TAGS = (subs => \@EXPORT_SUBS,
 		vars => \@EXPORT_VARS,
 		all  => [ @EXPORT_SUBS, @EXPORT_VARS ]);
 
-$VERSION = '1.12';
+$VERSION = '1.30';
 
 $DECIMAL_POINT   = '.';
 $THOUSANDS_SEP   = ',';
 $INT_CURR_SYMBOL = 'USD ';
+$DECIMAL_DIGITS  = 2;
+$DECIMAL_FILL    = 0;
+$NEG_FORMAT      = '-x';
+
+$DEFAULT_LOCALE = { mon_thousands_sep => $THOUSANDS_SEP,
+		    mon_decimal_point => $DECIMAL_POINT,
+		    thousands_sep     => $THOUSANDS_SEP,
+		    decimal_point     => $DECIMAL_POINT,
+		    int_curr_symbol   => $INT_CURR_SYMBOL,
+		    neg_format        => $NEG_FORMAT,
+		    decimal_digits    => $DECIMAL_DIGITS,
+		    decimal_fill      => $DECIMAL_FILL,
+		  };
 
 ###---------------------------------------------------------------------
 
@@ -138,8 +203,8 @@ sub _get_self
 
 ##----------------------------------------------------------------------
 
-# _check_seps is used to validate that the $THOUSANDS_SEP and
-#     $DECIMAL_POINT variables have acceptable values.  For internal use
+# _check_seps is used to validate that the thousands_sep and
+#     decimal_point variables have acceptable values.  For internal use
 #     only.
 
 sub _check_seps
@@ -185,21 +250,29 @@ sub new
 {
     my $type = shift;
     my %args = @_;
-    my $me = {};
 
     # Fetch defaults from current locale, or failing that, using globals
-    my $locale = setlocale(LC_ALL);
+    my $me            = {};
+    my $locale        = setlocale(LC_ALL);
     my $locale_values = localeconv();
-    %$me = %$locale_values;
-    $me->{mon_thousands_sep}   ||= $THOUSANDS_SEP;
-    $me->{mon_decimal_point}   ||= $DECIMAL_POINT;
-    $me->{thousands_sep}       ||= $me->{mon_thousands_sep};
-    $me->{decimal_point}       ||= $me->{mon_decimal_point};
-    $me->{int_curr_symbol}     ||= $INT_CURR_SYMBOL;
+    my $arg;
+    foreach $arg (keys %$locale_values)
+    {
+	$me->{$arg} = $locale_values->{$arg};
+    }
+    $me->{mon_decimal_point} ||= $DECIMAL_POINT;
+    $me->{mon_thousands_sep} ||= $THOUSANDS_SEP;
+    $me->{int_curr_symbol}   ||= $INT_CURR_SYMBOL;
+    $me->{decimal_digits}    ||= $DECIMAL_DIGITS;
+    $me->{decimal_fill}      ||= $DECIMAL_FILL;
+    $me->{neg_format}        ||= $NEG_FORMAT;
+    $me->{thousands_sep}     ||= $me->{mon_thousands_sep};
+    $me->{decimal_point}     ||= $me->{mon_decimal_point};
 
     # Override if given as arguments
-    my $arg;
-    foreach $arg (qw(thousands_sep decimal_point int_curr_symbol))
+    foreach $arg (qw(thousands_sep decimal_point mon_thousands_sep
+		     mon_decimal_point int_curr_symbol decimal_digits
+		     decimal_fill neg_format))
     {
 	foreach ($arg, uc $arg, "-$arg", uc "-$arg")
 	{
@@ -240,6 +313,7 @@ variables, use C<format_number()> instead.
 sub round
 {
     my ($self, $number, $precision) = _get_self @_;
+    $precision = $self->{decimal_digits} unless defined $precision;
     $precision = 2 unless defined $precision;
     $number    = 0 unless defined $number;
     my $multiplier = (10 ** $precision);
@@ -248,20 +322,22 @@ sub round
 
 ##----------------------------------------------------------------------
 
-=item format_number($number, $precision)
+=item format_number($number, $precision, $trailing_zeroes)
 
 Formats a number by adding C<THOUSANDS_SEP> between each set of 3
 digits to the left of the decimal point, substituting C<DECIMAL_POINT>
 for the decimal point, and rounding to the specified precision using
 C<round()>.  Note that C<$precision> is a I<maximum> precision
-specifier; trailing zeroes will not appear in the output (see
-C<format_price()> for that).  If C<$precision> is omitted, the default
-value of 2 is used.  Examples:
+specifier; trailing zeroes will only appear in the output if
+C<$trailing_zeroes> is provided with a value that is not zero, undef,
+or the empty string.  If C<$precision> is omitted, the default value
+of 2 is used.  Examples:
 
   format_number(12345.6789)      yields   '12,345.68'
   format_number(123456.789, 2)   yields   '123,456.79'
   format_number(1234567.89, 2)   yields   '1,234,567.89'
   format_number(1234567.8, 2)    yields   '1,234,567.8'
+  format_number(1234567.8, 2, 1) yields   '1,234,567.80'
   format_number(1.23456789, 6)   yields   '1.234568'
 
 Of course the output would have your values of C<THOUSANDS_SEP> and
@@ -271,12 +347,25 @@ C<DECIMAL_POINT> instead of ',' and '.' respectively.
 
 sub format_number
 {
-    my ($self, $number, $precision) = _get_self @_;
+    my ($self, $number, $precision, $trailing_zeroes) = _get_self @_;
     $self->_check_seps();	# first make sure the SEP variables are valid
+
+    # Set defaults and standardize number
+    $precision = $self->{decimal_digits}     unless defined $precision;
+    $trailing_zeroes = $self->{decimal_fill} unless defined $trailing_zeroes;
+
+    # Handle negative numbers
+    my $sign = $number <=> 0;
+    $number = abs($number) if $sign < 0;
     $number = $self->round($number, $precision); # round off $number
 
     # Split integer and decimal parts of the number and add commas
     my ($integer, $decimal) = split(/\./, $number, 2);
+    $decimal = '' unless defined $decimal;
+
+    # Add trailing 0's if $trailing_zeroes is set.
+    $decimal .= '0'x( $precision - length($decimal) )
+	if $trailing_zeroes && $precision > length($decimal);
 
     # Add leading 0's so length($integer) is divisible by 3
     $integer = '0'x(3 - (length($integer) % 3)).$integer;
@@ -287,11 +376,36 @@ sub format_number
 
     # Strip off leading zeroes and/or comma
     $integer =~ s/^0+\Q$self->{thousands_sep}\E?//;
+    $integer = '0' if $integer eq '';
 
     # Combine integer and decimal parts and return the result.
-    return ((defined $decimal) ? 
-	    join($self->{decimal_point}, $integer || '', $decimal) :
-	    $integer);
+    my $result = ((defined $decimal && length $decimal) ?
+		  join($self->{decimal_point}, $integer, $decimal) :
+		  $integer);
+
+    return ($sign < 0) ? $self->format_negative($result) : $result;
+}
+
+##----------------------------------------------------------------------
+
+=item format_negative($number, $picture)
+
+Formats a negative number.  Picture should be a string that contains
+the letter C<x> where the number should be inserted.  For example, for
+standard negative numbers you might use ``C<-x>'', while for
+accounting purposes you might use ``C<(x)>''.  If the specified number
+begins with a ``-'' character, that will be removed before formatting,
+but formatting will occur whether or not the number is negative.
+
+=cut
+
+sub format_negative
+{
+    my($self, $number, $format) = _get_self @_;
+    $format = $self->{neg_format} unless defined $format;
+    $number =~ s/^-//;
+    $format =~ s/x/$number/;
+    return $format;
 }
 
 ##----------------------------------------------------------------------
@@ -327,7 +441,9 @@ sub format_picture
     my ($pic_int, $pic_dec, $num_int, $num_dec, @cruft); # local variables
 
     # Split up the picture and die if there is more than one $DECIMAL_POINT
-    ($pic_int, $pic_dec, @cruft) = split(/\Q$self->{decimal_point}\E/, $picture);
+    ($pic_int, $pic_dec, @cruft) =
+	split(/\Q$self->{decimal_point}\E/, $picture);
+
     die ("Number::Format::format_picture($number, $picture): ",
 	 "Only one decimal separator($self->{decimal_point}) ",
 	 "permitted in picture.\n")
@@ -382,8 +498,9 @@ sub format_picture
     # or spaces if we've run out of numbers.
     while ($_ = pop @pic_int)
     {
-	$_ = (pop(@num_int) || ' ') if ($_ eq '#');
-	$_ = ' ' if ($_ eq $self->{thousands_sep} && $#num_int < 0);
+	$_ = pop(@num_int) if ($_ eq '#');
+	$_ = ' ' if (!defined($_) ||
+		     $_ eq $self->{thousands_sep} && $#num_int < 0);
 	unshift (@result, $_);
     }
 
@@ -417,7 +534,11 @@ The third example assumes that C<INT_CURR_SYMBOL> is the empty string.
 sub format_price
 {
     my ($self, $number, $precision) = _get_self @_;
+    $precision = $self->{decimal_digits} unless defined $precision;
     $precision = 2 unless defined $precision; # default
+
+    my $sign = $number <=> 0;
+    $number = abs($number) if $sign < 0;
 
     $number = $self->format_number($number, $precision); # format it first
     # Now we make sure the decimal part has enough zeroes
@@ -427,8 +548,12 @@ sub format_price
     $decimal .= '0'x($precision - length $decimal);
 
     # Combine it all back together and return it.
-    join('', $self->{int_curr_symbol},
-	 $integer, $self->{mon_decimal_point}, $decimal);
+    my($result) = $precision ?
+	join('', $self->{int_curr_symbol},
+	 	$integer, $self->{mon_decimal_point}, $decimal):
+	$integer ;
+
+    return ($sign < 0) ? $self->format_negative($result) : $result;
 }
 
 ##----------------------------------------------------------------------
@@ -450,6 +575,10 @@ the integer and decimal portions of the input.  All other non-digit
 characters, including but not limited to C<INT_CURR_SYMBOL> and
 C<THOUSANDS_SEP>, are removed.
 
+If the number matches the pattern of C<NEG_FORMAT> I<or> there is a
+``-'' character before any of the digits, then a negative number is
+returned.
+
 =cut
 
 sub unformat_number
@@ -465,12 +594,19 @@ sub unformat_number
 	 "Only one decimal separator($self->{decimal_point}) permitted.\n")
 	if @cruft;
 
+    # It's negative if the first non-digit character is a -
+    my $sign = $formatted =~ /^\D*-/ ? -1 : 1;
+    my($before_re, $after_re) = split /x/, $self->{neg_format}, 2;
+    $sign = -1 if $formatted =~ /\Q$before_re\E(.+)\Q$after_re\E/;
+
     # Strip out all non-digits from integer and decimal parts
     $integer =~ s/\D//g;
     $decimal =~ s/\D//g;
 
     # Join back up, using period, and add 0 to make Perl think it's a number
-    join('.', $integer, $decimal) + 0;
+    my $number = join('.', $integer, $decimal) + 0;
+    $number = -$number if $sign < 0;
+    return $number;
 }
 
 ###---------------------------------------------------------------------

@@ -7,7 +7,7 @@
 # Change 1..1 below to 1..last_test_to_print .
 # (It may become useful if the test is moved to ./t subdirectory.)
 
-BEGIN { $| = 1; print "1..5\n"; }
+BEGIN { $| = 1; print "1..6\n"; }
 END {print "not ok 1\n" unless $loaded;}
 use Number::Format qw(:subs);
 $loaded = 1;
@@ -28,5 +28,10 @@ print "ok 3\n";
 print "not " if (defined unformat_number('US$###,###,###.##'));
 print "ok 4\n";
 
-print "not " unless (unformat_number('123,456,789.51') == 123456789.51);
+print "not " unless (unformat_number('-123,456,789.51') == -123456789.51);
 print "ok 5\n";
+
+my $x = new Number::Format;
+$x->{neg_format} = '(x)';
+print "not " unless ($x->unformat_number('(123,456,789.51)') == -123456789.51);
+print "ok 6\n";

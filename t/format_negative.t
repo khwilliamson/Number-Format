@@ -9,7 +9,7 @@
 
 BEGIN { $| = 1; print "1..7\n"; }
 END {print "not ok 1\n" unless $loaded;}
-use Number::Format qw(:subs);
+use Number::Format;
 $loaded = 1;
 print "ok 1\n";
 
@@ -19,23 +19,26 @@ print "ok 1\n";
 # (correspondingly "not ok 13") depending on the success of chunk 13
 # of the test code):
 
-$pic = 'US$##,###,###.##';
-
-print "not " unless (format_picture(123456.512, $pic) eq 'US$   123,456.51');
+my $x = new Number::Format;
+$x->{neg_format}='-x';
+print "not " unless ($x->format_negative(123456.51) eq '-123456.51');
 print "ok 2\n";
 
-print "not " unless (format_picture(1234567.509, $pic) eq 'US$ 1,234,567.51');
+print "not " unless ($x->format_number(-.509) eq '-0.51');
 print "ok 3\n";
 
-print "not " unless (format_picture(12345678.5, $pic) eq 'US$12,345,678.50');
+$x->{decimal_digits}=5;
+print "not " unless ($x->format_negative(.5555) eq '-0.5555');
 print "ok 4\n";
 
-print "not " unless (format_picture(123456789.51, $pic) eq 'US$**,***,***.**');
+$x->{decimal_fill}=1;
+print "not " unless ($x->format_number(-.5555) eq '-0.55550');
 print "ok 5\n";
 
-print "not " unless (format_picture(1023012.34, $pic) eq 'US$ 1,023,012.34');
+$x->{neg_format}='(x)';
+print "not " unless ($x->format_number(-1) eq '(1.00000)');
 print "ok 6\n";
 
-print "not " unless (format_picture(120450.789012, $pic) eq 'US$   120,450.79');
+print "not " unless ($x->format_number(-.5) eq '(0.50000)');
 print "ok 7\n";
 
