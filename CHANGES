@@ -1,7 +1,47 @@
-Changes for version 1.41
+Changes for version 1.43 (Dec 10, 2001)
 ------------------------
 
-Mon Nov 30 10:51:19 PST 1998
+  - Fix bug in format_price that caused an extra space to be inserted
+    in some situations, and no space in others, between the currency
+    string and the number.
+  - Add support for gigabytes (formerly only kilo and mega) to
+    format_bytes.  (Thanks to Oeyvind Flaam <flaam@flaam.priv.no>)
+
+
+Changes for version 1.42 (May 17, 2000)
+------------------------
+
+  - Fixed bug in format_picture that was causing subsequent calls to
+    return the previous result and the current one concatenated
+    together.  This is actually due to a bug in Perl, but a workaround
+    was implemented.  To avoid this problem in your own code, don't
+    use code like this: "my VARIABLE = EXPRESSION if CONDITION"
+    because if the CONDITION is false, the previous value of VARIABLE
+    will still be there, even if it had gone out of scope!  This bug
+    was pointed out by Buddy Burden <buddy@barefoot.net> on 21 Mar
+    1999, Frank Tobin <ftobin@uiuc.edu> on 11 Jun 1999, Mark
+    William Rostron <mrostron@us.oracle.com> on 12 Dec 1999, and Ben
+    Tilly <ben_tilly@hotmail.com> on 16 May 2000.  Fix suggested by
+    Buddy Burden, Mark William Rostron, and Ben Tilly.
+  - Fixed bug in round() that was causing e.g. round(1.005, 2) to return
+    1 instead of 1.01.  This is due to the vagaries of floating point
+    arithmetic.  I changed .5 to .5000001 in the rounding formula and
+    added a check for this in the test suite.  That seems to fix it
+    but please let me know if you experience any weird results.  This
+    bug was reported by Kentaro Takatomi <kentaro.takatomi@msdw.com>
+    on 25 May 1999.
+  - Fixed several points in the code where 'use of uninitialized
+    value' warnings were generated.  Reported by Frank Tobin
+    <ftobin@uiuc.edu> on 11 Jun 1999.
+  - In format_picture, replaced the use of $_ with a locally scoped
+    variable ($char).  This should reduce interference between this
+    routine and any use of $_ by the calling program.  Bug report and
+    suggested fix by Mark William Rostron <mrostron@us.oracle.com> on
+    29 Dec 1999.
+
+Changes for version 1.41 (Nov 30, 1998)
+------------------------
+
   - Fix 'undefined value' warnings in format_picture
   - Fix bug in format_picture to show decimal point if and only if it
     is present in the picture string (bug reported by Michael Scoltock
@@ -10,45 +50,67 @@ Mon Nov 30 10:51:19 PST 1998
     decimal digits (bug reported by Michael Scoltock
     <scoltock@ictp.trieste.it>)
 
-Changes for version 1.40
+Changes for version 1.40 (Nov 27, 1998)
 ------------------------
 
-Fri Nov 27 23:31:00 PST 1998
-  - Fix bugs with negative numbers in round() and format_picture()
-  - Add format_bytes() (suggested by Curt Tilmes <curt@ltpmail.gsfc.nasa.gov>)
+  - Add new function format_bytes() to display '1K' for '1024', etc.
+    (suggested by Curt Tilmes <curt@ltpmail.gsfc.nasa.gov>)
+  - Fix bugs in round() and format_picture() when dealing with negative
+    numbers.  NOTE: format_picture() now includes at least one extra
+    space in its output for positive numbers.  This may present a minor
+    incompatibility issue in some obscure cases.
+  - Minor documentation updates.
 
-Changes for version 1.30
+
+Changes for version 1.30 (Oct 31, 1998)
 ------------------------
 
-Sat Oct 31 01:25:57 PST 1998
+  - Fix several major bugs, including the POSIX-not-required issue, as
+    well as better support for negative values.
+  - Add setting for default size of decimal area so you don't have to
+    specify the number of digits if it's other than 2.
+  - Add setting and function to display negative numbers in different
+    formats.
+  - Add setting to force trailing 0's in the decimal portion to fill out
+    the number of digits required.
+  - Fix problem where 0's inside format_picture()'s output were being
+    replaced with spaces.
+  - Add 0 before decimal point if number is between -1 and 1.
   - Fix errors with supposedly-optional POSIX
-
-Mon Sep 28 09:23:18 PDT 1998
   - From: Yair Lenga <yair@bpa1.sbi.com>
     Suggested adding controls to pad out result of format_number with
     zeroes as well as the ability to present negative numbers with
     parentheses.  Provided a patch which was useful in constructing a
     solution.
-
-Tue Sep 15 10:12:55 PDT 1998
   - Add test for defined() from patch by IMAZU Hideyo <himazu@ms.com>
-
-Wed Sep	 9 03:09:27 PDT 1998
   - From: "Joseph Norton" <namaste1_@hotmail.com>
     Bugs in format_number(): processed negative numbers incorrectly,
     and lacked the zero before the decimal point if number is between
     0 and 1.
 
-Changes for version 1.20
+Changes for version 1.20 (Aug 31, 1998)
 ------------------------
 
-Mon Aug 31 19:04:01 PDT 1998
-  - Make POSIX optional
-  - Add option to always display trailing zeroes in format_number
+  - Make POSIX no longer required (users on MicroSoft systems sometimes
+    don't have it); uses US defaults if no POSIX.pm found.
+  - Add new optional third argument to format_number() to add trailing
+    zeroes.
 
-Changes for version 1.10
+Changes for version 1.12
 ------------------------
 
-Fri Nov 21 14:13:30 PST 1997
+  - Remove 'use of undefined value' warnings when used with perl -w
+
+Changes for version 1.10 (Nov 21, 1997)
+------------------------
+
   - Add Locale support to set the default values for $THOUSANDS_SEP,
     $DECIMAL_SEP, and $CURRENCY based on the user's locale.
+  - Add object oriented interface.
+  - NOTE: Some aspects of the API have changed.  Please reread the
+    documentation carefully if you used 1.0 previously!!!
+
+Initial version 1.00
+--------------------
+
+  - Limited release beta version.

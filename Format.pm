@@ -55,7 +55,8 @@ formatting engine.  Valid parameters are:
   DECIMAL_FILL	    - boolean; whether to add zeroes to fill out decimal
   NEG_FORMAT	    - format to display negative numbers (def ``-x'')
   KILO_SUFFIX	    - suffix to add when format_bytes formats kilobytes
-  MEGA_SUFFIX	    - suffix to add when format_bytes formats megabytes
+  MEGA_SUFFIX	    -    "    "  "    "        "         "    megabytes
+  GIGA_SUFFIX	    -    "    "  "    "        "         "    gigabytes
 
 They may be specified in upper or lower case, with or without a
 leading hyphen ( - ).
@@ -82,12 +83,13 @@ the parameters are:
   DECIMAL_POINT	    = '.'
   MON_THOUSANDS_SEP = ','
   MON_DECIMAL_POINT = '.'
-  INT_CURR_SYMBOL   = 'USD '
+  INT_CURR_SYMBOL   = 'USD'
   DECIMAL_DIGITS    = 2
   DECIMAL_FILL	    = 0
   NEG_FORMAT	    = '-x'
   KILO_SUFFIX	    = 'K'
   MEGA_SUFFIX	    = 'M'
+  GIGA_SUFFIX	    = 'G'
 
 Note however that when you first call one of the functions in this
 module I<without> using the object-oriented interface, further setting
@@ -109,9 +111,11 @@ positive representation of the number being passed to that function.
 C<format_number()> and C<format_price()> utilize this feature by
 calling C<format_negative()> if the number was less than 0.
 
-C<KILO_SUFFIX> and C<MEGA_SUFFIX> are used by C<format_bytes()> when
-the value is over 1024 or 1024*1024, respectively.  The default values
-are "K" and "M".
+C<KILO_SUFFIX>, C<MEGA_SUFFIX>, and C<GIGA_SUFFIX> are used by
+C<format_bytes()> when the value is over 1024, 1024*1024, or
+1024*1024*1024, respectively.  The default values are "K", "M", and
+"G".  Note: we can't do TERA because of integer overflows on 32-bit
+systems.
 
 The only restrictions on C<DECIMAL_POINT> and C<THOUSANDS_SEP> are that
 they must not be digits, must not be identical, and must each be one
@@ -150,8 +154,9 @@ you can use the tag C<:all>.
 use strict;
 use vars qw($DECIMAL_DIGITS $DECIMAL_FILL $DECIMAL_POINT
 	    $DEFAULT_LOCALE $INT_CURR_SYMBOL $KILO_SUFFIX $MEGA_SUFFIX
-	    $NEG_FORMAT $POSIX_LOADED $THOUSANDS_SEP $VERSION
-	    %EXPORT_TAGS @EXPORT_OK @EXPORT_SUBS @EXPORT_VARS @ISA);
+	    $GIGA_SUFFIX $NEG_FORMAT $POSIX_LOADED $THOUSANDS_SEP
+	    $VERSION %EXPORT_TAGS @EXPORT_OK @EXPORT_SUBS @EXPORT_VARS
+	    @ISA);
 use Exporter;
 use Carp;
 
@@ -178,23 +183,24 @@ BEGIN
 		  format_price format_bytes round unformat_number);
 @EXPORT_VARS = qw($DECIMAL_DIGITS $DECIMAL_FILL $DECIMAL_POINT
 		  $DEFAULT_LOCALE $INT_CURR_SYMBOL $KILO_SUFFIX
-		  $MEGA_SUFFIX $NEG_FORMAT $POSIX_LOADED
+		  $MEGA_SUFFIX $GIGA_SUFFIX $NEG_FORMAT $POSIX_LOADED
 		  $THOUSANDS_SEP);
 @EXPORT_OK   = (@EXPORT_SUBS, @EXPORT_VARS);
 %EXPORT_TAGS = (subs => \@EXPORT_SUBS,
 		vars => \@EXPORT_VARS,
 		all  => [ @EXPORT_SUBS, @EXPORT_VARS ]);
 
-$VERSION = '1.42';
+$VERSION = '1.43';
 
 $DECIMAL_POINT	 = '.';
 $THOUSANDS_SEP	 = ',';
-$INT_CURR_SYMBOL = 'USD ';
+$INT_CURR_SYMBOL = 'USD';
 $DECIMAL_DIGITS	 = 2;
 $DECIMAL_FILL	 = 0;
 $NEG_FORMAT	 = '-x';
 $KILO_SUFFIX	 = 'K';
 $MEGA_SUFFIX	 = 'M';
+$GIGA_SUFFIX	 = 'G';
 
 $DEFAULT_LOCALE = { mon_thousands_sep => $THOUSANDS_SEP,
 		    mon_decimal_point => $DECIMAL_POINT,
@@ -204,6 +210,7 @@ $DEFAULT_LOCALE = { mon_thousands_sep => $THOUSANDS_SEP,
 		    neg_format	      => $NEG_FORMAT,
 		    kilo_suffix	      => $KILO_SUFFIX,
 		    mega_suffix	      => $MEGA_SUFFIX,
+		    giga_suffix	      => $GIGA_SUFFIX,
 		    decimal_digits    => $DECIMAL_DIGITS,
 		    decimal_fill      => $DECIMAL_FILL,
 		  };
@@ -301,13 +308,15 @@ sub new
     $me->{neg_format}	     ||= $NEG_FORMAT;
     $me->{kilo_suffix}	     ||= $KILO_SUFFIX;
     $me->{mega_suffix}	     ||= $MEGA_SUFFIX;
+    $me->{giga_suffix}	     ||= $GIGA_SUFFIX;
     $me->{thousands_sep}     ||= $me->{mon_thousands_sep};
     $me->{decimal_point}     ||= $me->{mon_decimal_point};
 
     # Override if given as arguments
     foreach $arg (qw(thousands_sep decimal_point mon_thousands_sep
 		     mon_decimal_point int_curr_symbol decimal_digits
-		     decimal_fill neg_format kilo_suffix mega_suffix))
+		     decimal_fill neg_format kilo_suffix mega_suffix
+		     giga_suffix))
     {
 	foreach ($arg, uc $arg, "-$arg", uc "-$arg")
 	{
@@ -616,6 +625,7 @@ sub format_price
     $decimal .= '0'x($precision - length $decimal);
 
     # Combine it all back together and return it.
+    $self->{int_curr_symbol} =~ s/\s*$/ /;
     my $result = ($self->{int_curr_symbol} .
 		  ($precision ?
 		   join($self->{mon_decimal_point}, $integer, $decimal) :
@@ -650,21 +660,24 @@ sub format_bytes
     $precision = 2 unless defined $precision; # default
     croak "Negative number ($number) not allowed in format_bytes\n"
 	if $number < 0;
-    my($kp, $mp) = (0, 0);
-    if ($number > 1048576)
+    my $suffix = "";
+    if ($number > 0x40000000)
     {
-	$mp = 1;
-	$number /= 1048576;
+	$number /= 0x40000000;
+	$suffix = $self->{giga_suffix};
     }
-    elsif ($number > 1024)
+    elsif ($number > 0x100000)
     {
-	$kp = 1;
-	$number /= 1024;
+	$number /= 0x100000;
+	$suffix = $self->{mega_suffix};
+    }
+    elsif ($number > 0x400)
+    {
+	$number /= 0x400;
+	$suffix = $self->{kilo_suffix};
     }
 
     $number = $self->format_number($number, $precision); # format it first
-    my $suffix = ($kp ? $self->{kilo_suffix} :
-		  ($mp ? $self->{mega_suffix} : ''));
 
     # Combine it all back together and return it.
     return $number.$suffix;

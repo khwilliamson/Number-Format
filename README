@@ -1,6 +1,6 @@
 Number::Format - Convert numbers to strings with pretty formatting
 
-Version: 1.42
+Version: 1.43
 
 WHAT IS IT
 
@@ -17,36 +17,54 @@ Also of note is the format_picture command which converts a number into
 a string using a "picture" string that you provide.  This is similar to
 the PRINT USING statement that some versions of BASIC have.
 
+In addition, functions exist to generate strings for numbers
+containing currency (e.g. "USD 9.99", "DEM 20.00", etc.) or for
+rounding large values of bytes to the nearest giga/mega/kilo
+(e.g. "1.5M", "640K", etc.).
+
+
+HOW TO GET
+
+Download it from your favorite CPAN mirror, or from our website:
+
+    http://www.bayview.com/software/perl.shtml
+
 
 BUILDING/INSTALLING
 
-Perl version 5.003 or higher is required.  This package is set up to
-configure and build like a typical Perl extension.  To build:
+Perl version 5.004 or higher is recommended, though it should work on
+5.003.  This package is set up to configure and build like a typical
+Perl extension.  To build:
 
         perl Makefile.PL
-	make && make test && make install
-	make install
+        make && make test && make install
+        make install
 
 NOTE: You may need super-user access to install.
 
 
 PROBLEMS/BUG REPORTS
 
-Please send any reports of problems or bugs to wrw@bayview.com.
+Please send any reports of problems or bugs to wrw@bayview.com.  If
+you can include a patch, it'll increase the chances that the bug will
+be fixed quickly :-)
 
 
 MAILING LIST
 
 We have an electronic mailing list for announcements of new releases
-of this module.  To join send mail to majordomo@bayview.com with the
-command in the body of the message:
+of this module.  If you wish to join this list, visit this URL:
 
-	subscribe number-format-announce
+   http://lists.bayview.com/listinfo/number-format-announce
+
+There is not currently a discussion list, but I'll be happy to create
+one if there is demand for it.  (Yes, I know that Mailman is written
+in Python, but it's the best mailing list software I know of.)
 
 
 CREDITS AND LICENSES
 
-This package is copyright 1997-8 by William R. Ward <wrw@bayview.com>
+This package is copyright 1997-2001 by William R. Ward <wrw@bayview.com>
 and may be distributed under terms of the Artistic License used to cover
 Perl itself.  See the file Artistic in the distribution of Perl 5.002 or
 later for details of copy and distribution terms.
@@ -54,87 +72,13 @@ later for details of copy and distribution terms.
 
 CHANGE HISTORY
 
-This is version 1.42:
-  - Fixed bug in format_picture that was causing subsequent calls to
-    return the previous result and the current one concatenated
-    together.  This is actually due to a bug in Perl, but a workaround
-    was implemented.  To avoid this problem in your own code, don't
-    use code like this: "my VARIABLE = EXPRESSION if CONDITION"
-    because if the CONDITION is false, the previous value of VARIABLE
-    will still be there, even if it had gone out of scope!  This bug
-    was pointed out by Buddy Burden <buddy@barefoot.net> on 21 Mar
-    1999, Frank Tobin <ftobin@uiuc.edu> on 11 Jun 1999, Mark
-    William Rostron <mrostron@us.oracle.com> on 12 Dec 1999, and Ben
-    Tilly <ben_tilly@hotmail.com> on 16 May 2000.  Fix suggested by
-    Buddy Burden, Mark William Rostron, and Ben Tilly.
-  - Fixed bug in round() that was causing e.g. round(1.005, 2) to return
-    1 instead of 1.01.  This is due to the vagaries of floating point
-    arithmetic.  I changed .5 to .5000001 in the rounding formula and
-    added a check for this in the test suite.  That seems to fix it
-    but please let me know if you experience any weird results.  This
-    bug was reported by Kentaro Takatomi <kentaro.takatomi@msdw.com>
-    on 25 May 1999.
-  - Fixed several points in the code where 'use of uninitialized
-    value' warnings were generated.  Reported by Frank Tobin
-    <ftobin@uiuc.edu> on 11 Jun 1999.
-  - In format_picture, replaced the use of $_ with a locally scoped
-    variable ($char).  This should reduce interference between this
-    routine and any use of $_ by the calling program.  Bug report and
-    suggested fix by Mark William Rostron <mrostron@us.oracle.com> on
-    29 Dec 1999.
+Changes for version 1.43 (Dec 10, 2001)
+------------------------
 
-version 1.41:
+  - Fix bug in format_price that caused an extra space to be inserted
+    in some situations, and no space in others, between the currency
+    string and the number.
+  - Add support for gigabytes (formerly only kilo and mega) to
+    format_bytes.
 
-  - Fix 'undefined value' warnings in format_picture
-  - Fix bug in format_picture to show decimal point if and only if it
-    is present in the picture string (bug reported by Michael Scoltock
-    <scoltock@ictp.trieste.it>)
-  - Fix bug in format_price that would suppress currency symbol if no
-    decimal digits (bug reported by Michael Scoltock
-    <scoltock@ictp.trieste.it>)
-
-version 1.40:
-
-  - Add new function format_bytes() to display '1K' for '1024', etc.
-    (suggested by Curt Tilmes <curt@ltpmail.gsfc.nasa.gov>)
-  - Fix bugs in round() and format_picture() when dealing with negative
-    numbers.  NOTE: format_picture() now includes at least one extra
-    space in its output for positive numbers.  This may present a minor
-    incompatibility issue in some obscure cases.
-  - Minor documentation updates.
-
-version 1.30:
-
-  - Fix several major bugs, including the POSIX-not-required issue, as
-    well as better support for negative values.
-  - Add setting for default size of decimal area so you don't have to
-    specify the number of digits if it's other than 2.
-  - Add setting and function to display negative numbers in different
-    formats.
-  - Add setting to force trailing 0's in the decimal portion to fill out
-    the number of digits required.
-  - Fix problem where 0's inside format_picture()'s output were being
-    replaced with spaces.
-  - Add 0 before decimal point if number is between -1 and 1.
-
-version 1.20:
-
-  - Make POSIX no longer required (users on MicroSoft systems sometimes
-    don't have it); uses US defaults if no POSIX.pm found.
-  - Add new optional third argument to format_number() to add trailing
-    zeroes.
- 
-version 1.12:
-
-  - Remove 'use of undefined value' warnings when used with perl -w
-
-version 1.10:
-
-  - Add object oriented interface and support for POSIX locales.
-
-  - NOTE: Some aspects of the API have changed.  Please reread the
-    documentation carefully if you used 1.0 previously!!!
-
-Initial version 1.0:
-
-  - Limited release beta version.
+[See the file "CHANGES" for previous changes.]
