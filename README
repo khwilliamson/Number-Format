@@ -1,6 +1,6 @@
 Number::Format - Convert numbers to strings with pretty formatting
 
-Version: 1.41
+Version: 1.42
 
 WHAT IS IT
 
@@ -54,7 +54,36 @@ later for details of copy and distribution terms.
 
 CHANGE HISTORY
 
-This is version 1.41:
+This is version 1.42:
+  - Fixed bug in format_picture that was causing subsequent calls to
+    return the previous result and the current one concatenated
+    together.  This is actually due to a bug in Perl, but a workaround
+    was implemented.  To avoid this problem in your own code, don't
+    use code like this: "my VARIABLE = EXPRESSION if CONDITION"
+    because if the CONDITION is false, the previous value of VARIABLE
+    will still be there, even if it had gone out of scope!  This bug
+    was pointed out by Buddy Burden <buddy@barefoot.net> on 21 Mar
+    1999, Frank Tobin <ftobin@uiuc.edu> on 11 Jun 1999, Mark
+    William Rostron <mrostron@us.oracle.com> on 12 Dec 1999, and Ben
+    Tilly <ben_tilly@hotmail.com> on 16 May 2000.  Fix suggested by
+    Buddy Burden, Mark William Rostron, and Ben Tilly.
+  - Fixed bug in round() that was causing e.g. round(1.005, 2) to return
+    1 instead of 1.01.  This is due to the vagaries of floating point
+    arithmetic.  I changed .5 to .5000001 in the rounding formula and
+    added a check for this in the test suite.  That seems to fix it
+    but please let me know if you experience any weird results.  This
+    bug was reported by Kentaro Takatomi <kentaro.takatomi@msdw.com>
+    on 25 May 1999.
+  - Fixed several points in the code where 'use of uninitialized
+    value' warnings were generated.  Reported by Frank Tobin
+    <ftobin@uiuc.edu> on 11 Jun 1999.
+  - In format_picture, replaced the use of $_ with a locally scoped
+    variable ($char).  This should reduce interference between this
+    routine and any use of $_ by the calling program.  Bug report and
+    suggested fix by Mark William Rostron <mrostron@us.oracle.com> on
+    29 Dec 1999.
+
+version 1.41:
 
   - Fix 'undefined value' warnings in format_picture
   - Fix bug in format_picture to show decimal point if and only if it

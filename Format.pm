@@ -17,7 +17,7 @@ Number::Format - Perl extension for formatting numbers
   $formatted = $x->format_price($number, $precision);
   $formatted = $x->format_bytes($number, $precision);
   $number    = $x->unformat_number($formatted);
-  
+
   use Number::Format qw(:subs);
   $formatted = round($number, $precision);
   $formatted = format_number($number, $precision, $trailing_zeroes);
@@ -185,7 +185,7 @@ BEGIN
 		vars => \@EXPORT_VARS,
 		all  => [ @EXPORT_SUBS, @EXPORT_VARS ]);
 
-$VERSION = '1.41';
+$VERSION = '1.42';
 
 $DECIMAL_POINT	 = '.';
 $THOUSANDS_SEP	 = ',';
@@ -348,15 +348,16 @@ variables, use C<format_number()> instead.
 sub round
 {
     my ($self, $number, $precision) = _get_self @_;
-    my $sign = $number <=> 0;
-    $number = abs($number) if $sign < 0;
     $precision = $self->{decimal_digits} unless defined $precision;
     $precision = 2 unless defined $precision;
     $number    = 0 unless defined $number;
+
+    my $sign = $number <=> 0;
     my $multiplier = (10 ** $precision);
-    $number = int(($number * $multiplier) + .5) / $multiplier;
-    $number = -$number if $sign < 0;
-    return $number;
+    my $result = abs($number);
+    $result = int(($result * $multiplier) + .5000001) / $multiplier;
+    $result = -$result if $sign < 0;
+    return $result;
 }
 
 ##----------------------------------------------------------------------
@@ -473,13 +474,20 @@ I<only> use of that variable by this function is to remove leading
 commas (see the first example above).  There may not be more than one
 instance of C<DECIMAL_POINT> in C<$picture>.
 
+The value of C<NEG_FORMAT> is used to determine how negative numbers
+are displayed.  The result of this is that the output of this function
+my have unexpected spaces before and/or after the number.  This is
+necessary so that positive and negative numbers are formatted into a
+space the same size.  If you are only using positive numbers and want
+to avoid this problem, set NEG_FORMAT to "x".
+
 =cut
 
 sub format_picture
 {
     my ($self, $number, $picture) = _get_self @_;
     $self->_check_seps();
-    
+
     # Handle negative numbers
     my($neg_prefix) = $self->{neg_format} =~ /^([^x]+)/;
     my($pic_prefix) = $picture            =~ /^([^\#]+)/;
@@ -537,29 +545,33 @@ sub format_picture
     my @pic_dec = split(//, $pic_dec);
 
     # Now we copy those characters into @result.
-    my @result = ($self->{decimal_point})
+    my @result;
+    @result = ($self->{decimal_point})
 	if $picture =~ /\Q$self->{decimal_point}\E/;
     # For each characture in the decimal part of the picture, replace '#'
     # signs with digits from the number.
-    foreach (@pic_dec)
+    my $char;
+    foreach $char (@pic_dec)
     {
-	$_ = (shift(@num_dec) || 0) if ($_ eq '#');
-	push (@result, $_);
+	$char = (shift(@num_dec) || 0) if ($char eq '#');
+	push (@result, $char);
     }
 
     # For each character in the integer part of the picture (moving right
     # to left this time), replace '#' signs with digits from the number,
     # or spaces if we've run out of numbers.
-    while ($_ = pop @pic_int)
+    while ($char = pop @pic_int)
     {
-	$_ = pop(@num_int) if ($_ eq '#');
-	$_ = ' ' if (!defined($_) ||
-		     $_ eq $self->{thousands_sep} && $#num_int < 0);
-	unshift (@result, $_);
+	$char = pop(@num_int) if ($char eq '#');
+	$char = ' ' if (!defined($char) ||
+			$char eq $self->{thousands_sep} && $#num_int < 0);
+	unshift (@result, $char);
     }
 
     # Combine @result into a string and return it.
     my $result = join('', @result);
+    $sign_prefix = '' unless defined $sign_prefix;
+    $pic_prefix  = '' unless defined $pic_prefix;
     $result =~ s/^(\Q$sign_prefix\E)(\Q$pic_prefix\E)(\s*)/$2$3$1/;
     $result;
 }
@@ -636,7 +648,6 @@ sub format_bytes
     my ($self, $number, $precision) = _get_self @_;
     $precision = $self->{decimal_digits} unless defined $precision;
     $precision = 2 unless defined $precision; # default
-
     croak "Negative number ($number) not allowed in format_bytes\n"
 	if $number < 0;
     my($kp, $mp) = (0, 0);
@@ -711,6 +722,8 @@ sub unformat_number
     $sign = -1 if $formatted =~ /\Q$before_re\E(.+)\Q$after_re\E/;
 
     # Strip out all non-digits from integer and decimal parts
+    $integer = '' unless defined $integer;
+    $decimal = '' unless defined $decimal;
     $integer =~ s/\D//g;
     $decimal =~ s/\D//g;
 
@@ -721,13 +734,17 @@ sub unformat_number
     # Scale the number if it ended in kilo or mega suffix.
     $number *= 1024    if $kp;
     $number *= 1048576 if $mp;
-    
+
     return $number;
 }
 
 ###---------------------------------------------------------------------
 
 =back
+
+=head1 BUGS
+
+No known bugs at this time.  Please report any problems to the author.
 
 =head1 AUTHOR
 

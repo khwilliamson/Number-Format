@@ -7,7 +7,7 @@
 # Change 1..1 below to 1..last_test_to_print .
 # (It may become useful if the test is moved to ./t subdirectory.)
 
-BEGIN { $| = 1; print "1..5\n"; }
+BEGIN { $| = 1; print "1..6\n"; }
 END {print "not ok 1\n" unless $loaded;}
 use Number::Format qw(:all);
 $loaded = 1;
@@ -30,3 +30,6 @@ print "ok 4\n";
 
 print "not " unless (format_price(123456789.1) eq 'USD 123,456,789.10');
 print "ok 5\n";
+
+print "not " unless (format_price(100, "0") eq 'USD 100');
+print "ok 6\n";

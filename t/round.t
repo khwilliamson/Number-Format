@@ -7,7 +7,7 @@
 # Change 1..1 below to 1..last_test_to_print .
 # (It may become useful if the test is moved to ./t subdirectory.)
 
-BEGIN { $| = 1; print "1..6\n"; }
+BEGIN { $| = 1; print "1..7\n"; }
 END {print "not ok 1\n" unless $loaded;}
 use Number::Format qw(:subs);
 $loaded = 1;
@@ -22,14 +22,17 @@ print "ok 1\n";
 print "not " unless (round(123456.512) == 123456.51);
 print "ok 2\n";
 
-print "not " unless (round(1234567.509, 2) == 1234567.51);
+print "not " unless (round(-1234567.509, 2) == -1234567.51);
 print "ok 3\n";
 
-print "not " unless (round(12345678.5, 2) == 12345678.5);
+print "not " unless (round(-12345678.5, 2) == -12345678.5);
 print "ok 4\n";
 
-print "not " unless (round(123456.78951, 4) == 123456.7895);
+print "not " unless (round(-123456.78951, 4) == -123456.7895);
 print "ok 5\n";
 
 print "not " unless (round(123456.78951, -2) == 123500);
 print "ok 6\n";
+
+print "not " unless (round(1.005, 2) eq 1.01);
+print "ok 7\n";

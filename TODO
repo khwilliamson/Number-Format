@@ -1,11 +1,20 @@
 Planned improvements for Number::Format
 ---------------------------------------
 
-Tue Sep	 1 10:41:25 PDT 1998
-  - From: Domenico Viggiani <viggiani@pitagora.it>
+From: Domenico Viggiani <viggiani@pitagora.it> 1 Sep 1998
     I'd like very much to have a function to format a
     number eventually inserting leading zeroes in front of it. For istance:
     format_picture(100.023, '##,###.##')     yields   '000100.02'
     format_picture(1000.023, '##,###.##')   yields   '01,000.02'
     [wrw] How about: '0#,###.##' yields '01,000.02' but '##,###.##'
 	  yields ' 1,000.02'?
+
+From: Eric Fixler <fix@idiom.com> 6 Sep 1999
+    Merge Number::Format and Text::Number
+
+From: mark william rostron <mrostron@us.oracle.com> 13 Dec 1999
+    Emulate a complete ORACLE, SYBASE and COBOL-like picture-based
+    formatting service for numbers and dates. I realise this is
+    probably asking for the nile right now, however .... so anyway
+    I'll look around for any c-code based stuff, but my thoughts are a
+    regexp-type solution at this point.
