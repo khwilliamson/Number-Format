@@ -1,6 +1,6 @@
 Number::Format - Convert numbers to strings with pretty formatting
 
-Version: 1.30
+Version: 1.41
 
 WHAT IS IT
 
@@ -54,38 +54,58 @@ later for details of copy and distribution terms.
 
 CHANGE HISTORY
 
+This is version 1.41:
+
+  - Fix 'undefined value' warnings in format_picture
+  - Fix bug in format_picture to show decimal point if and only if it
+    is present in the picture string (bug reported by Michael Scoltock
+    <scoltock@ictp.trieste.it>)
+  - Fix bug in format_price that would suppress currency symbol if no
+    decimal digits (bug reported by Michael Scoltock
+    <scoltock@ictp.trieste.it>)
+
+version 1.40:
+
+  - Add new function format_bytes() to display '1K' for '1024', etc.
+    (suggested by Curt Tilmes <curt@ltpmail.gsfc.nasa.gov>)
+  - Fix bugs in round() and format_picture() when dealing with negative
+    numbers.  NOTE: format_picture() now includes at least one extra
+    space in its output for positive numbers.  This may present a minor
+    incompatibility issue in some obscure cases.
+  - Minor documentation updates.
+
 version 1.30:
 
-* Fix several major bugs, including the POSIX-not-required issue, as
-  well as better support for negative values.
-* Add setting for default size of decimal area so you don't have to
-  specify the number of digits if it's other than 2.
-* Add setting and function to display negative numbers in different
-  formats.
-* Add setting to force trailing 0's in the decimal portion to fill out
-  the number of digits required.
-* Fix problem where 0's inside format_picture()'s output were being
-  replaced with spaces.
-* Add 0 before decimal point if number is between -1 and 1.
+  - Fix several major bugs, including the POSIX-not-required issue, as
+    well as better support for negative values.
+  - Add setting for default size of decimal area so you don't have to
+    specify the number of digits if it's other than 2.
+  - Add setting and function to display negative numbers in different
+    formats.
+  - Add setting to force trailing 0's in the decimal portion to fill out
+    the number of digits required.
+  - Fix problem where 0's inside format_picture()'s output were being
+    replaced with spaces.
+  - Add 0 before decimal point if number is between -1 and 1.
 
 version 1.20:
 
-* Make POSIX no longer required (users on MicroSoft systems sometimes
-  don't have it); uses US defaults if no POSIX.pm found.
-* Add new optional third argument to format_number() to add trailing
-  zeroes.
+  - Make POSIX no longer required (users on MicroSoft systems sometimes
+    don't have it); uses US defaults if no POSIX.pm found.
+  - Add new optional third argument to format_number() to add trailing
+    zeroes.
  
 version 1.12:
 
-* Remove 'use of undefined value' warnings when used with perl -w
+  - Remove 'use of undefined value' warnings when used with perl -w
 
 version 1.10:
 
-* Add object oriented interface and support for POSIX locales.
+  - Add object oriented interface and support for POSIX locales.
 
-* NOTE: Some aspects of the API have changed.  Please reread the
-  documentation carefully if you used 1.0 previously!!!
+  - NOTE: Some aspects of the API have changed.  Please reread the
+    documentation carefully if you used 1.0 previously!!!
 
 Initial version 1.0:
 
-* Limited release beta version.
+  - Limited release beta version.

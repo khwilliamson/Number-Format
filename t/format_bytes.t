@@ -7,9 +7,9 @@
 # Change 1..1 below to 1..last_test_to_print .
 # (It may become useful if the test is moved to ./t subdirectory.)
 
-BEGIN { $| = 1; print "1..8\n"; }
+BEGIN { $| = 1; print "1..5\n"; }
 END {print "not ok 1\n" unless $loaded;}
-use Number::Format qw(:subs);
+use Number::Format qw(:all);
 $loaded = 1;
 print "ok 1\n";
 
@@ -19,25 +19,14 @@ print "ok 1\n";
 # (correspondingly "not ok 13") depending on the success of chunk 13
 # of the test code):
 
-print "not " unless (unformat_number('123,456.51') == 123456.51);
+print "not " unless (format_bytes(123.51) eq '123.51');
 print "ok 2\n";
 
-print "not " unless (unformat_number('US$ 12,345,678.51') == 12345678.51);
+print "not " unless (format_bytes(1234567.509) eq '1.18M');
 print "ok 3\n";
 
-print "not " if (defined unformat_number('US$###,###,###.##'));
+print "not " unless (format_bytes(1234.51, 3) eq '1.206K');
 print "ok 4\n";
 
-print "not " unless (unformat_number('-123,456,789.51') == -123456789.51);
+print "not " unless (format_bytes(123456789.1) eq '117.74M');
 print "ok 5\n";
-
-print "not " unless (unformat_number('1.5K') == 1536);
-print "ok 6\n";
-
-print "not " unless (unformat_number('1.3M') == 1363148.8);
-print "ok 7\n";
-
-my $x = new Number::Format;
-$x->{neg_format} = '(x)';
-print "not " unless ($x->unformat_number('(123,456,789.51)') == -123456789.51);
-print "ok 8\n";

@@ -1,3 +1,22 @@
+Changes for version 1.41
+------------------------
+
+Mon Nov 30 10:51:19 PST 1998
+  - Fix 'undefined value' warnings in format_picture
+  - Fix bug in format_picture to show decimal point if and only if it
+    is present in the picture string (bug reported by Michael Scoltock
+    <scoltock@ictp.trieste.it>)
+  - Fix bug in format_price that would suppress currency symbol if no
+    decimal digits (bug reported by Michael Scoltock
+    <scoltock@ictp.trieste.it>)
+
+Changes for version 1.40
+------------------------
+
+Fri Nov 27 23:31:00 PST 1998
+  - Fix bugs with negative numbers in round() and format_picture()
+  - Add format_bytes() (suggested by Curt Tilmes <curt@ltpmail.gsfc.nasa.gov>)
+
 Changes for version 1.30
 ------------------------
 
