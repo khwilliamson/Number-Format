@@ -1,6 +1,6 @@
 Number::Format - Convert numbers to strings with pretty formatting
 
-Version: 1.44
+Version: 1.45
 
 WHAT IS IT
 
@@ -64,13 +64,21 @@ in Python, but it's the best mailing list software I know of.)
 
 CREDITS AND LICENSES
 
-This package is copyright 1997-2001 by William R. Ward <wrw@bayview.com>
+This package is copyright 1997-2002 by William R. Ward <wrw@bayview.com>
 and may be distributed under terms of the Artistic License used to cover
 Perl itself.  See the file Artistic in the distribution of Perl 5.002 or
 later for details of copy and distribution terms.
 
 
 CHANGE HISTORY
+
+Changes for version 1.45 (Aug 27, 2002)
+------------------------
+
+  - Now that the Euro is used in Germany, the regression tests (which
+    expected DEM as the currency) fail.  Change tests to accept either
+    DEM or EUR for the currency code.  Also change tabs to spaces in
+    Format.pm.
 
 Changes for version 1.44 (Dec 11, 2001)
 ------------------------

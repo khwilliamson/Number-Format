@@ -20,8 +20,7 @@ print "ok 1\n";
 # of the test code):
 
 my $deutsch = new Number::Format(-thousands_sep   => '.',
-				 -decimal_point   => ',',
-				 -int_curr_symbol => 'DEM ');
+                                 -decimal_point   => ',');
 print "not " unless defined $deutsch && ref $deutsch eq 'Number::Format';
 print "ok 2\n";
 

@@ -26,8 +26,11 @@ print "ok 1\n";
 if (setlocale(POSIX::LC_ALL, "de_DE"))
 {
     my $german = new Number::Format();
+    my $marks_or_euros = $german->format_price(123456.789);
+
     print "not "
-	unless ($german->format_price(123456.789) eq 'DEM 123.456,79');
+        unless ($marks_or_euros eq 'DEM 123.456,79' ||
+                $marks_or_euros eq 'EUR 123.456,79');
 }
 print "ok 2\n";
 
