@@ -1,0 +1,57 @@
+Number::Format - Convert numbers to strings with pretty formatting
+
+Version: 1.10
+
+WHAT IS IT
+
+Number::Format is a library for formatting numbers.  Functions are
+provided for converting numbers to strings in a variety of ways, and to
+convert strings that contain numbers back into numeric form.  The output
+formats may include thousands separators - characters inserted between
+each group of three characters counting right to left from the decimal
+point.  The characters used for the decimal point and the thousands
+separator come from the locale information or can be specified by the
+user.
+
+Also of note is the format_picture command which converts a number into
+a string using a "picture" string that you provide.  This is similar to
+the PRINT USING statement that some versions of BASIC have.
+
+
+BUILDING/INSTALLING
+
+This package is set up to configure and build like a typical Perl
+extension.  To build:
+
+        perl Makefile.PL
+	make && make test && make install
+	make install
+
+NOTE: You may need super-user access to install.
+
+
+PROBLEMS/BUG REPORTS
+
+Please send any reports of problems or bugs to wrw@bayview.com.
+
+
+CREDITS AND LICENSES
+
+This package is copyright 1997-8 by William R. Ward <wrw@bayview.com>
+and may be distributed under terms of the Artistic License used to cover
+Perl itself.  See the file Artistic in the distribution of Perl 5.002 or
+later for details of copy and distribution terms.
+
+
+CHANGE HISTORY
+
+This is version 1.10:
+
+* Add object oriented interface and support for POSIX locales.
+
+* NOTE: Some aspects of the API have changed.  Please reread the
+  documentation carefully if you used 1.0 previously!!!
+
+Initial version 1.0:
+
+* Limited release beta version.

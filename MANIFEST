@@ -1,0 +1,11 @@
+Changes
+Format.pm
+MANIFEST
+Makefile.PL
+README
+TODO
+t/format_number.t
+t/format_picture.t
+t/format_price.t
+t/round.t
+t/unformat_number.t

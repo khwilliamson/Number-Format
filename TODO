@@ -1,0 +1,6 @@
+Planned improvements for Number::Format
+---------------------------------------
+
+Fri Nov 21 14:13:30 PST 1997
+  - Add Locale support to set the default values for $THOUSANDS_SEP,
+    $DECIMAL_SEP, and $CURRENCY based on the user's locale.
