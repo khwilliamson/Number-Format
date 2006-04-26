@@ -13,3 +13,4 @@ t/locale.t
 t/object.t
 t/round.t
 t/unformat_number.t
+META.yml                                 Module meta-data (added by MakeMaker)

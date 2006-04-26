@@ -1,3 +1,29 @@
+Changes for version 1.51 (Apr 26, 2006)
+-------------------------
+  - Patch to t/format_price.t supplied by Cosimo Streppone to allow it
+    to work with non-US locales
+
+Changes for version 1.5 (Feb 14, 2005)
+------------------------
+  - Require Perl 5.8 - was 5.003 before
+  - Require POSIX.pm - was optional before
+  - If C<THOUSANDS_SEP> is set to the empty string, format_number will
+    not insert any separators.
+  - Replace "use vars" with "our"
+  - Support scientific notation - skip formatting
+  - Change format_bytes to support options (precision, unit, and base)
+    instead of precision number
+
+Changes for version 1.45 (Aug 8, 2002)
+------------------------
+  - No code change; only change is to test suite.
+  - Replace all tab characters with spaces
+
+Changes for version 1.44 (Dec 11, 2001)
+------------------------
+  - Add support for GIGA_SUFFIX.  Can't do TERA because of integer overflow.
+  - Detect decimal part correctly in Perl 5.6 and up
+
 Changes for version 1.43 (Dec 10, 2001)
 ------------------------
 
@@ -6,7 +32,6 @@ Changes for version 1.43 (Dec 10, 2001)
     string and the number.
   - Add support for gigabytes (formerly only kilo and mega) to
     format_bytes.  (Thanks to Oeyvind Flaam <flaam@flaam.priv.no>)
-
 
 Changes for version 1.42 (May 17, 2000)
 ------------------------
@@ -60,7 +85,6 @@ Changes for version 1.40 (Nov 27, 1998)
     space in its output for positive numbers.  This may present a minor
     incompatibility issue in some obscure cases.
   - Minor documentation updates.
-
 
 Changes for version 1.30 (Oct 31, 1998)
 ------------------------

@@ -1,6 +1,11 @@
 package Number::Format;
 
-require 5.003;
+# Due to differences in the locale system Perl 5.8 is required for
+# this module to function properly.  You may be able to get it to work
+# on older Perls by uncommenting this line, but it is not supported.
+# I recommend you either upgrade Perl or download an older version of
+# this module in that case.
+require 5.008;
 
 =head1 NAME
 
@@ -29,9 +34,9 @@ Number::Format - Perl extension for formatting numbers
 
 =head1 REQUIRES
 
-Perl, version 5.003 or higher.
+Perl, version 5.8 or higher.
 
-POSIX.pm will be used if present to determine locale settings.
+POSIX.pm to determine locale settings.
 
 Carp.pm is used for some error reporting.
 
@@ -61,14 +66,19 @@ formatting engine.  Valid parameters are:
 They may be specified in upper or lower case, with or without a
 leading hyphen ( - ).
 
+If C<THOUSANDS_SEP> is set to the empty string, format_number will not
+insert any separators.
+
 The defaults for C<THOUSANDS_SEP>, C<DECIMAL_POINT>,
 C<MON_THOUSANDS_SEP>, C<MON_DECIMAL_POINT>, and C<INT_CURR_SYMBOL>
-come from the POSIX locale information (see L<perllocale>), if
-available.  If your POSIX locale does not provide C<MON_THOUSANDS_SEP>
-and/or C<MON_DECIMAL_POINT> fields, then the C<THOUSANDS_SEP> and/or
-C<DECIMAL_POINT> values are used for those parameters.  Some systems
-(e.g. Win32 ports of Perl) do not include POSIX support.  In those
-systems, the POSIX system is bypassed.
+come from the POSIX locale information (see L<perllocale>).  If your
+POSIX locale does not provide C<MON_THOUSANDS_SEP> and/or
+C<MON_DECIMAL_POINT> fields, then the C<THOUSANDS_SEP> and/or
+C<DECIMAL_POINT> values are used for those parameters.  Formerly,
+POSIX was optional but this caused problems in some cases, so it is
+now required.  If this causes you hardship, please contact the author
+of this package at <SwPrAwM@cpan.org> (remove "SPAM" to get correct
+email address) for help.
 
 If any of the above parameters are not specified when you invoke
 C<new()>, then the values are taken from package global variables of
@@ -114,7 +124,7 @@ calling C<format_negative()> if the number was less than 0.
 C<KILO_SUFFIX>, C<MEGA_SUFFIX>, and C<GIGA_SUFFIX> are used by
 C<format_bytes()> when the value is over 1024, 1024*1024, or
 1024*1024*1024, respectively.  The default values are "K", "M", and
-"G".  Note: we can't do TERA because of integer overflows on 32-bit
+"G".  Note: we can not do TERA because of integer overflows on 32-bit
 systems.
 
 The only restrictions on C<DECIMAL_POINT> and C<THOUSANDS_SEP> are that
@@ -152,68 +162,46 @@ you can use the tag C<:all>.
 ###---------------------------------------------------------------------
 
 use strict;
-use vars qw($DECIMAL_DIGITS $DECIMAL_FILL $DECIMAL_POINT
-            $DEFAULT_LOCALE $INT_CURR_SYMBOL $KILO_SUFFIX $MEGA_SUFFIX
-            $GIGA_SUFFIX $NEG_FORMAT $POSIX_LOADED $THOUSANDS_SEP
-            $VERSION %EXPORT_TAGS @EXPORT_OK @EXPORT_SUBS @EXPORT_VARS
-            @ISA);
 use Exporter;
 use Carp;
+use POSIX;
 
-BEGIN
-{
-    eval { require POSIX; POSIX->import( qw(locale_h) ) };
-    if ($@)
-    {
-        # code to provide alternate definitions for POSIX functions
-        *localeconv = sub { $DEFAULT_LOCALE }; # return default
-        *setlocale  = sub { };  #  do nothing
-        *LC_ALL = sub { };      #  do nothing
-        $POSIX_LOADED = 0;
-    }
-    else
-    {
-        $POSIX_LOADED = 1;
-    }
-}
+our @ISA     = qw(Exporter);
 
-@ISA     = qw(Exporter);
+our @EXPORT_SUBS = qw(format_number format_negative format_picture
+                      format_price format_bytes round unformat_number);
+our @EXPORT_VARS = qw($DECIMAL_DIGITS $DECIMAL_FILL $DECIMAL_POINT
+                      $DEFAULT_LOCALE $INT_CURR_SYMBOL $KILO_SUFFIX
+                      $MEGA_SUFFIX $GIGA_SUFFIX $NEG_FORMAT $THOUSANDS_SEP);
+our @EXPORT_OK   = (@EXPORT_SUBS, @EXPORT_VARS);
+our %EXPORT_TAGS = (subs => \@EXPORT_SUBS,
+                    vars => \@EXPORT_VARS,
+                    all  => [ @EXPORT_SUBS, @EXPORT_VARS ]);
 
-@EXPORT_SUBS = qw(format_number format_negative format_picture
-                  format_price format_bytes round unformat_number);
-@EXPORT_VARS = qw($DECIMAL_DIGITS $DECIMAL_FILL $DECIMAL_POINT
-                  $DEFAULT_LOCALE $INT_CURR_SYMBOL $KILO_SUFFIX
-                  $MEGA_SUFFIX $GIGA_SUFFIX $NEG_FORMAT $POSIX_LOADED
-                  $THOUSANDS_SEP);
-@EXPORT_OK   = (@EXPORT_SUBS, @EXPORT_VARS);
-%EXPORT_TAGS = (subs => \@EXPORT_SUBS,
-                vars => \@EXPORT_VARS,
-                all  => [ @EXPORT_SUBS, @EXPORT_VARS ]);
+our $VERSION = '1.51';
 
-$VERSION = '1.45';
+our $DECIMAL_POINT   = '.';
+our $THOUSANDS_SEP   = ',';
+our $INT_CURR_SYMBOL = 'USD';
+our $DECIMAL_DIGITS  = 2;
+our $DECIMAL_FILL    = 0;
+our $NEG_FORMAT      = '-x';
+our $KILO_SUFFIX     = 'K';
+our $MEGA_SUFFIX     = 'M';
+our $GIGA_SUFFIX     = 'G';
 
-$DECIMAL_POINT   = '.';
-$THOUSANDS_SEP   = ',';
-$INT_CURR_SYMBOL = 'USD';
-$DECIMAL_DIGITS  = 2;
-$DECIMAL_FILL    = 0;
-$NEG_FORMAT      = '-x';
-$KILO_SUFFIX     = 'K';
-$MEGA_SUFFIX     = 'M';
-$GIGA_SUFFIX     = 'G';
-
-$DEFAULT_LOCALE = { mon_thousands_sep => $THOUSANDS_SEP,
-                    mon_decimal_point => $DECIMAL_POINT,
-                    thousands_sep     => $THOUSANDS_SEP,
-                    decimal_point     => $DECIMAL_POINT,
-                    int_curr_symbol   => $INT_CURR_SYMBOL,
-                    neg_format        => $NEG_FORMAT,
-                    kilo_suffix       => $KILO_SUFFIX,
-                    mega_suffix       => $MEGA_SUFFIX,
-                    giga_suffix       => $GIGA_SUFFIX,
-                    decimal_digits    => $DECIMAL_DIGITS,
-                    decimal_fill      => $DECIMAL_FILL,
-                  };
+our $DEFAULT_LOCALE = { (mon_thousands_sep => $THOUSANDS_SEP,
+                         mon_decimal_point => $DECIMAL_POINT,
+                         thousands_sep     => $THOUSANDS_SEP,
+                         decimal_point     => $DECIMAL_POINT,
+                         int_curr_symbol   => $INT_CURR_SYMBOL,
+                         neg_format        => $NEG_FORMAT,
+                         kilo_suffix       => $KILO_SUFFIX,
+                         mega_suffix       => $MEGA_SUFFIX,
+                         giga_suffix       => $GIGA_SUFFIX,
+                         decimal_digits    => $DECIMAL_DIGITS,
+                         decimal_fill      => $DECIMAL_FILL,
+                        ) };
 
 ###---------------------------------------------------------------------
 
@@ -250,8 +238,10 @@ sub _check_seps
 {
     my ($self) = @_;
     croak "Not an object" unless ref $self;
-    croak "Number::Format: {thousands_sep} must be one character\n"
-        if length $self->{thousands_sep} != 1;
+    croak "Number::Format: {thousands_sep} is undefined\n"
+        unless defined $self->{thousands_sep};
+    croak "Number::Format: {thousands_sep} is too long (max 1 character)\n"
+        if length $self->{thousands_sep} > 1;
     croak "Number::Format: {thousands_sep} may not be numeric\n"
         if $self->{thousands_sep} =~ /\d/;
     croak "Number::Format: {decimal_point} must be one character\n"
@@ -381,14 +371,21 @@ specifier; trailing zeroes will only appear in the output if
 C<$trailing_zeroes> is provided, or the parameter C<DECIMAL_FILL> is
 set, with a value that is true (not zero, undef, or the empty string).
 If C<$precision> is omitted, the value of the C<DECIMAL_DIGITS>
-parameter (default value of 2) is used.  Examples:
+parameter (default value of 2) is used.
 
-  format_number(12345.6789)      yields   '12,345.68'
-  format_number(123456.789, 2)   yields   '123,456.79'
-  format_number(1234567.89, 2)   yields   '1,234,567.89'
-  format_number(1234567.8, 2)    yields   '1,234,567.8'
-  format_number(1234567.8, 2, 1) yields   '1,234,567.80'
-  format_number(1.23456789, 6)   yields   '1.234568'
+If the value is too large or great to work with as a regular number,
+but instead must be shown in scientific notation, returns that number
+in scientific notation without further formatting.
+
+Examples:
+
+  format_number(12345.6789)             yields   '12,345.68'
+  format_number(123456.789, 2)          yields   '123,456.79'
+  format_number(1234567.89, 2)          yields   '1,234,567.89'
+  format_number(1234567.8, 2)           yields   '1,234,567.8'
+  format_number(1234567.8, 2, 1)        yields   '1,234,567.80'
+  format_number(1.23456789, 6)          yields   '1.234568'
+  format_number("0.000020000E+00", 7);' yields   '2e-05'
 
 Of course the output would have your values of C<THOUSANDS_SEP> and
 C<DECIMAL_POINT> instead of ',' and '.' respectively.
@@ -409,6 +406,14 @@ sub format_number
     $number = abs($number) if $sign < 0;
     $number = $self->round($number, $precision); # round off $number
 
+    # detect scientific notation
+    my $exponent = 0;
+    if ($number =~ /^(-?[\d.]+)e([+-]\d+)$/)
+    {
+        # Don't attempt to format numbers that require scientific notation.
+        return $number;
+    }
+
     # Split integer and decimal parts of the number and add commas
     my $integer = int($number);
     my $decimal;
@@ -425,15 +430,20 @@ sub format_number
     $decimal .= '0'x( $precision - length($decimal) )
         if $trailing_zeroes && $precision > length($decimal);
 
-    # Add leading 0's so length($integer) is divisible by 3
-    $integer = '0'x(3 - (length($integer) % 3)).$integer;
+    # Add the commas (or whatever is in thousands_sep).  If
+    # thousands_sep is the empty string, do nothing.
+    if ($self->{thousands_sep})
+    {
+        # Add leading 0's so length($integer) is divisible by 3
+        $integer = '0'x(3 - (length($integer) % 3)).$integer;
 
-    # Split $integer into groups of 3 characters and insert commas
-    $integer = join($self->{thousands_sep},
-                    grep {$_ ne ''} split(/(...)/, $integer));
+        # Split $integer into groups of 3 characters and insert commas
+        $integer = join($self->{thousands_sep},
+                        grep {$_ ne ''} split(/(...)/, $integer));
 
-    # Strip off leading zeroes and/or comma
-    $integer =~ s/^0+\Q$self->{thousands_sep}\E?//;
+        # Strip off leading zeroes and/or comma
+        $integer =~ s/^0+\Q$self->{thousands_sep}\E?//;
+    }
     $integer = '0' if $integer eq '';
 
     # Combine integer and decimal parts and return the result.
@@ -633,7 +643,7 @@ sub format_price
     $decimal .= '0'x($precision - length $decimal);
 
     # Combine it all back together and return it.
-    $self->{int_curr_symbol} =~ s/\s*$/ /;
+    $self->{int_curr_symbol} =~ s/\s+$/ /;
     my $result = ($self->{int_curr_symbol} .
                   ($precision ?
                    join($self->{mon_decimal_point}, $integer, $decimal) :
@@ -644,51 +654,162 @@ sub format_price
 
 ##----------------------------------------------------------------------
 
-=item format_bytes($number, $precision)
+=item format_bytes($number, $options)
+
+=item format_bytes($number, $precision)  # deprecated
 
 Returns a string containing C<$number> formatted similarly to
-C<format_number()>, except that if the number is over 1024, it will be
-divided by 1024 and "K" appended to the end; or if it is over 1048576
-(1024*1024), it will be divided by 1048576 and "M" appended to the
-end.  Negative values will result in an error.
+C<format_number()>, except that large numbers may be abbreviated by
+adding C<$KILO_SUFFIX>, C<$MEGA_SUFFIX>, or C<$GIGA_SUFFIX>.  Negative
+values will result in an error.
 
-If C<$precision> is not provided, the default of 2 will be used.
-Examples:
+The second parameter can be either a reference to a hash that sets
+options, or a number.  Using a number here is deprecated; older
+versions of Number::Format only allowed a numeric value.  New code
+should use a hash reference instead.  If it is a number this sets the
+value of the "precision" option.
+
+Valid options are:
+
+=over 4
+
+=item precision
+
+Set the precision for displaying numbers.  If not provided, a default
+of 2 will be used.  Examples:
 
   format_bytes(12.95)   yields   '12.95'
   format_bytes(2048)    yields   '2K'
-  format_bytes(1048576) yields   '1M'
+  format_bytes(9999999) yields   '9.54M'
+
+=item unit
+
+Sets the default units used for the results.  The default is to
+determine this automatically in order to minimize the length of the
+string.  In other words, numbers greater than or equal to 1024 will be
+divided by 1024 and C<$KILO_SUFFIX> added; if greater than or equal to
+1048576 (1024*1024), it will be divided by 1048576 and "M" appended to
+the end; etc.
+
+However if a value is given for C<unit> it will use that value
+instead.  Acceptable values for C<unit> are: 'giga', 'mega', 'kilo',
+'none', or 'auto'.  These may be abbreviated to their first letters
+'g', 'm', 'k', 'n', or 'a'; they may be given in upper- or lowercase
+letters.  For example:
+
+  format_bytes(1048576, { units => 'K'}) yields     '1,024K'
+                                         instead of '1M'
+
+Using 'none' as the unit blocks all unit conversion, and the function
+simply returns the result of format_number($number, $precision).  The
+default behavior can be obtained by specifying 'auto'.
+
+Note that the valid values to this option do not vary even when the
+C<$GIGA_SUFFIX>, C<$MEGA_SUFFIX>, and C<$KILO_SUFFIX> variables have
+been changed.
+
+=item base
+
+Sets the number at which the C<$KILO_SUFFIX> is added.  Default is
+1024.  Set to any value; the only other useful value is probably 1000,
+as hard disk manufacturers use that number to make their disks sound
+bigger than they really are.
+
+=back
 
 =cut
 
 sub format_bytes
 {
-    my ($self, $number, $precision) = _get_self @_;
-    $precision = $self->{decimal_digits} unless defined $precision;
-    $precision = 2 unless defined $precision; # default
+    my ($self, $number, @options) = _get_self @_;
+
     croak "Negative number ($number) not allowed in format_bytes\n"
         if $number < 0;
-    my $suffix = "";
-    if ($number > 0x40000000)
+
+    # If a single scalar is given instead of key/value pairs for
+    # @options, treat that as the value of the precision option.
+    my %options;
+    if (@options == 1)
     {
-        $number /= 0x40000000;
+        # To be uncommented in a future release:
+        ### carp "format_bytes: number instead of options is deprecated";
+        %options = ( precision => $options[0] );
+    }
+    else
+    {
+        %options = @options;
+    }
+
+    # Set default for precision.  Test using defined because it may be 0.
+    $options{precision} = $self->{decimal_digits}
+        unless defined $options{precision};
+    $options{precision} = 2
+        unless defined $options{precision}; # default
+
+    # Set default for "base" option.  Calculate threshold values for
+    # kilo, mega, and giga values.  On 32-bit systems tera would cause
+    # overflows so it is not supported.  Useful values of "base" are
+    # 1024 or 1000, but any number can be used.  Larger numbers may
+    # cause overflows for giga or even mega, however.
+    $options{base} = 1024
+        unless defined $options{base};
+    my $kilo_th = $options{base};
+    my $mega_th = $options{base} ** 2;
+    my $giga_th = $options{base} ** 3;
+
+    # Process "unit" option.  Set default, then take first character
+    # and convert to upper case.
+    $options{unit} = "auto"
+        unless defined $options{unit};
+    my $unit = uc(substr($options{unit},0,1));
+
+    # Process "auto" first (default).  Based on size of number,
+    # automatically determine which unit to use.
+    if ($unit eq 'A')
+    {
+        if ($number >= $giga_th)
+        {
+            $unit = 'G';
+        }
+        elsif ($number >= $mega_th)
+        {
+            $unit = 'M';
+        }
+        elsif ($number >= $kilo_th)
+        {
+            $unit = 'K';
+        }
+        else
+        {
+            $unit = 'N';
+        }
+    }
+
+    # Based on unit, whether specified or determined above, divide the
+    # number and determine what suffix to use.
+    my $suffix = "";
+    if ($unit eq 'G')
+    {
+        $number /= $giga_th;
         $suffix = $self->{giga_suffix};
     }
-    elsif ($number > 0x100000)
+    elsif ($unit eq 'M')
     {
-        $number /= 0x100000;
+        $number /= $mega_th;
         $suffix = $self->{mega_suffix};
     }
-    elsif ($number > 0x400)
+    elsif ($unit eq 'K')
     {
-        $number /= 0x400;
+        $number /= $kilo_th;
         $suffix = $self->{kilo_suffix};
     }
+    elsif ($unit ne 'N')
+    {
+        croak "format_bytes: Invalid unit option \"$options{unit}\"";
+    }
 
-    $number = $self->format_number($number, $precision); # format it first
-
-    # Combine it all back together and return it.
-    return $number.$suffix;
+    # Format the number and add the suffix.
+    return $self->format_number($number, $options{precision}) . $suffix;
 }
 
 ##----------------------------------------------------------------------
@@ -765,11 +886,14 @@ sub unformat_number
 
 =head1 BUGS
 
-No known bugs at this time.  Please report any problems to the author.
+No known bugs at this time.  Report bugs using the CPAN request
+tracker at L<https://rt.cpan.org/NoAuth/Bugs.html?Dist=Number-Format>
+or by email to the author.
 
 =head1 AUTHOR
 
-William R. Ward, wrw@bayview.com
+William R. Ward, SwPrAwM@cpan.org (remove "SPAM" before sending email,
+leaving only my initials)
 
 =head1 SEE ALSO
 

@@ -5,7 +5,7 @@
 $| = 1;
 
 use Number::Format qw(:vars);
-eval "use POSIX qw(locale_h)";
+use POSIX;
 if ($@)
 {
     print "1..0\n";
@@ -23,7 +23,7 @@ print "ok 1\n";
 # (correspondingly "not ok 13") depending on the success of chunk 13
 # of the test code):
 
-if (setlocale(POSIX::LC_ALL, "de_DE"))
+if (setlocale(&LC_ALL, "de_DE"))
 {
     my $german = new Number::Format();
     my $marks_or_euros = $german->format_price(123456.789);
@@ -34,7 +34,7 @@ if (setlocale(POSIX::LC_ALL, "de_DE"))
 }
 print "ok 2\n";
 
-setlocale(POSIX::LC_ALL, "en_US");
+setlocale(&LC_ALL, "en_US");
 my $english = new Number::Format();
 print "not " unless ($english->format_price(123456.789) eq 'USD 123,456.79');
 print "ok 3\n";
