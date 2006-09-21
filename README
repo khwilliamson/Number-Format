@@ -1,21 +1,21 @@
 Number::Format - Convert numbers to strings with pretty formatting
 
-Version: 1.45
+Version: 1.52
 
 WHAT IS IT
 
 Number::Format is a library for formatting numbers.  Functions are
-provided for converting numbers to strings in a variety of ways, and to
-convert strings that contain numbers back into numeric form.  The output
-formats may include thousands separators - characters inserted between
-each group of three characters counting right to left from the decimal
-point.  The characters used for the decimal point and the thousands
-separator come from the locale information or can be specified by the
-user.
+provided for converting numbers to strings in a variety of ways, and
+to convert strings that contain numbers back into numeric form.  The
+output formats may include thousands separators - characters inserted
+between each group of three characters counting right to left from the
+decimal point.  The characters used for the decimal point and the
+thousands separator come from the locale information or can be
+specified by the user.
 
-Also of note is the format_picture command which converts a number into
-a string using a "picture" string that you provide.  This is similar to
-the PRINT USING statement that some versions of BASIC have.
+Also of note is the format_picture command which converts a number
+into a string using a "picture" string that you provide.  This is
+similar to the PRINT USING statement that some versions of BASIC have.
 
 In addition, functions exist to generate strings for numbers
 containing currency (e.g. "USD 9.99", "DEM 20.00", etc.) or for
@@ -23,21 +23,37 @@ rounding large values of bytes to the nearest giga/mega/kilo
 (e.g. "1.5M", "640K", etc.).
 
 
+ALSO AVAILABLE
+
+The following are also available as part of the number-format
+Sourceforge project:
+  - Template Toolkit users: Use Template::Plugin::Number::Format
+    (contributed by Darren Chamberlain) from your templates.
+  - JavaScript users: we also have a JavaScript translation of the
+    Number::Format done by Cees Hek.
+
+
 HOW TO GET
 
-Download it from your favorite CPAN mirror, or from our website:
+Download it from your favorite CPAN mirror, or from the Sourceforge
+project:
 
-    http://www.bayview.com/software/perl.shtml
+    http://sourceforge.net/projects/number-format/
 
+If you are interested in being a developer for this project, or for
+more information, please contact William R. Ward, SwPrAwM@cpan.org
+(remove "SPAM" before sending email, leaving only my initials).
+    
 
 BUILDING/INSTALLING
 
-Perl version 5.004 or higher is recommended, though it should work on
-5.003.  This package is set up to configure and build like a typical
-Perl extension.  To build:
+Perl version 5.8 or higher is required, though it may work on older
+versions if you edit the 'require 5.008' line.  This package is set up
+to configure and build like a typical Perl extension.  To build:
 
         perl Makefile.PL
-        make && make test && make install
+        make
+	make test
         make install
 
 NOTE: You may need super-user access to install.
@@ -45,55 +61,51 @@ NOTE: You may need super-user access to install.
 
 PROBLEMS/BUG REPORTS
 
-Please send any reports of problems or bugs to wrw@bayview.com.  If
-you can include a patch, it'll increase the chances that the bug will
-be fixed quickly :-)
+Please submit your issues via the bug tracker on SourceForge or send
+email (see HOW TO GET, above).
 
 
 MAILING LIST
 
 We have an electronic mailing list for announcements of new releases
 of this module.  If you wish to join this list, visit this URL:
+    http://lists.sourceforge.net/mailman/listinfo/number-format-announce
 
-   http://lists.bayview.com/listinfo/number-format-announce
+We also have a mailing list for developers which you may join if you
+are interested in contributing to the project:
+    https://lists.sourceforge.net/lists/listinfo/number-format-developers
 
-There is not currently a discussion list, but I'll be happy to create
-one if there is demand for it.  (Yes, I know that Mailman is written
-in Python, but it's the best mailing list software I know of.)
+We do not yet have any list for users of the module; if you would like
+one, let us know and we will look into it.
+
+There are also forums available on the SourceForge site:
+    http://sourceforge.net/forum/?group_id=175334
 
 
 CREDITS AND LICENSES
 
-This package is copyright 1997-2002 by William R. Ward <wrw@bayview.com>
-and may be distributed under terms of the Artistic License used to cover
-Perl itself.  See the file Artistic in the distribution of Perl 5.002 or
-later for details of copy and distribution terms.
+This package is copyright 1997-2006 by William R. Ward et al., and may
+be distributed under terms of the Artistic License used to cover Perl
+itself.  See the file "Artistic" in your distribution of Perl for
+details of copy and distribution terms.
 
 
-CHANGE HISTORY
+RECENT CHANGES
 
-Changes for version 1.45 (Aug 27, 2002)
+Changes for version 1.52 (Sep 21, 2006)
 ------------------------
+  - Minor patch to t/format_price.t addressing failling tests
 
-  - Now that the Euro is used in Germany, the regression tests (which
-    expected DEM as the currency) fail.  Change tests to accept either
-    DEM or EUR for the currency code.  Also change tabs to spaces in
-    Format.pm.
-
-Changes for version 1.44 (Dec 11, 2001)
+Changes for version 1.51 (Apr 26, 2006)
 ------------------------
+  - Patch to t/format_price.t to work with non-US locales
 
-  - Fix bug in format_number caused by the fact that under Perl 5.6,
-    the string representation of a number respects the decimal point
-    defined by the locale.
-
-Changes for version 1.43 (Dec 10, 2001)
+Changes for version 1.5 (Feb 14, 2005)
 ------------------------
+  - Add Perl 5.8 and POSIX.pm to minimum requirements.
+  - Minor bug fixes - see CHANGES for details
+  - Change format_bytes to support options (precision, unit, and base)
+    instead of precision number
 
-  - Fix bug in format_price that caused an extra space to be inserted
-    in some situations, and no space in others, between the currency
-    string and the number.
-  - Add support for gigabytes (formerly only kilo and mega) to
-    format_bytes.
-
-[See the file "CHANGES" for previous changes.]
+See the file "CHANGES" for more details and previous changes.  You
+can also browse the CVS history on SourceForge for full details.

@@ -178,7 +178,7 @@ our %EXPORT_TAGS = (subs => \@EXPORT_SUBS,
                     vars => \@EXPORT_VARS,
                     all  => [ @EXPORT_SUBS, @EXPORT_VARS ]);
 
-our $VERSION = '1.51';
+our $VERSION = '1.52';
 
 our $DECIMAL_POINT   = '.';
 our $THOUSANDS_SEP   = ',';
@@ -643,7 +643,7 @@ sub format_price
     $decimal .= '0'x($precision - length $decimal);
 
     # Combine it all back together and return it.
-    $self->{int_curr_symbol} =~ s/\s+$/ /;
+    $self->{int_curr_symbol} =~ s/\s*$/ /;
     my $result = ($self->{int_curr_symbol} .
                   ($precision ?
                    join($self->{mon_decimal_point}, $integer, $decimal) :

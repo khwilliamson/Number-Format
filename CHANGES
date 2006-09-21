@@ -1,5 +1,15 @@
+Changes for version 1.52 (Sep 21, 2006)
+------------------------
+  - Patch to t/format_price.t supplied by jonasbn addressing failling 
+    tests in 1.51, tests 2-6, the regex formatting the currency code did 
+    not take 0 occurrences of white space into account
+	Patch: rt #21382
+	Resolves: rt #18964
+    (The same issue/patch was also reported by Cosimo Streppone, Randy
+    W. Sims, J. R. Taisto)
+
 Changes for version 1.51 (Apr 26, 2006)
--------------------------
+------------------------
   - Patch to t/format_price.t supplied by Cosimo Streppone to allow it
     to work with non-US locales
 
