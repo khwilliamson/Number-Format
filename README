@@ -1,6 +1,6 @@
 Number::Format - Convert numbers to strings with pretty formatting
 
-Version: 1.52
+Version: 1.60
 
 WHAT IS IT
 
@@ -30,7 +30,8 @@ Sourceforge project:
   - Template Toolkit users: Use Template::Plugin::Number::Format
     (contributed by Darren Chamberlain) from your templates.
   - JavaScript users: we also have a JavaScript translation of the
-    Number::Format done by Cees Hek.
+    Number::Format done by Cees Hek.  Find that in our CVS repository
+    here: http://number-format.cvs.sourceforge.net/number-format/javascript
 
 
 HOW TO GET
@@ -56,14 +57,23 @@ to configure and build like a typical Perl extension.  To build:
 	make test
         make install
 
-NOTE: You may need super-user access to install.
+NOTE: This installs the files in your core Perl module area, typically
+/usr/local/lib/perl on Unix/Linux and C:\PERL\LIB on Windows, so you
+may need super-user (root/administrator) access to install.  If you
+wish to install in a private area, such as your home directory,
+specify that as "perl Makefile.PL PREFIX=/path/to/private/area" and it
+will be installed there instead.
 
 
 PROBLEMS/BUG REPORTS
 
-Please submit your issues via the bug tracker on SourceForge or send
-email (see HOW TO GET, above).
+Please submit your issues via the CPAN RT bug tracker or the
+Sourceforge bug system:
+    http://rt.cpan.org/NoAuth/Bugs.html?Dist=Number-Format
+    http://sourceforge.net/tracker/?group_id=175334
 
+Please check for existing bug reports on your issue in both places
+before filing a new bug.
 
 MAILING LIST
 
@@ -84,13 +94,17 @@ There are also forums available on the SourceForge site:
 
 CREDITS AND LICENSES
 
-This package is copyright 1997-2006 by William R. Ward et al., and may
-be distributed under terms of the Artistic License used to cover Perl
-itself.  See the file "Artistic" in your distribution of Perl for
-details of copy and distribution terms.
+This package is copyright 1997-2008 by William R. Ward et al., and may
+be distributed under the same terms as cover Perl itself (your choice
+of Artistic or GPL).  See http://dev.perl.org/licenses/ for more
+information.
 
 
 RECENT CHANGES
+
+Changes for version 1.60 (Jul 2, 2008)
+------------------------
+  - Rewrite new() and format_price() to use mon_* POSIX Locale values
 
 Changes for version 1.52 (Sep 21, 2006)
 ------------------------

@@ -1,3 +1,9 @@
+Changes for version 1.60 (Jul 2, 2008)
+------------------------
+  - Rewrite new() and format_price() to use mon_* POSIX Locale values
+  - Add all missing POSIX Locale variables
+    (Thanks to Kevin Ryde for help identifying the problem)
+
 Changes for version 1.52 (Sep 21, 2006)
 ------------------------
   - Patch to t/format_price.t supplied by jonasbn addressing failling 

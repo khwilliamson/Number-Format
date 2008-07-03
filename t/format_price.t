@@ -1,43 +1,116 @@
-# -*- Perl -*-
-# Before `make install' is performed this script should be runnable with
-# `make test'. After `make install' it should work as `perl (testname).t'
+# -*- CPerl -*-
 
-######################### We start with some black magic to print on failure.
-
-# Change 1..1 below to 1..last_test_to_print .
-# (It may become useful if the test is moved to ./t subdirectory.)
-
+use Test::More qw(no_plan);
 use POSIX;
-setlocale(&LC_ALL, "en_US");
+setlocale(&LC_ALL, 'en_US');
 
-BEGIN { $| = 1; print "1..6\n"; }
-END {print "not ok 1\n" unless $loaded;}
-use Number::Format qw(:all);
-$loaded = 1;
-print "ok 1\n";
+BEGIN { use_ok('Number::Format') }
 
-######################### End of black magic.
+my $usd = Number::Format->new(-int_curr_symbol => 'USD');
 
-# Insert your test code below (better if it prints "ok 13"
-# (correspondingly "not ok 13") depending on the success of chunk 13
-# of the test code):
+is($usd->format_price(123456.51),   'USD 123,456.51',     'thou');
+is($usd->format_price(1234567.509), 'USD 1,234,567.51',   'mill');
+is($usd->format_price(1234.51, 3),  'USD 1,234.510',      'three dec');
+is($usd->format_price(123456789.1), 'USD 123,456,789.10', 'zero in dec');
+is($usd->format_price(100, '0'),    'USD 100',            'no dec');
 
-# TODO Here we could do some conditional tests based
-#      on current locale
+$usd->{p_cs_precedes}  = 1;
+$usd->{p_sep_by_space} = 0;
+$usd->{n_cs_precedes}  = 1;
+$usd->{n_sep_by_space} = 0;
+$usd->{p_sign_posn}    = 1;
+$usd->{n_sign_posn}    = 1;
 
-my $usd = new Number::Format(-int_curr_symbol => 'USD');
+is($usd->format_price(19.95, undef, 'currency_symbol'),
+   '$19.95', 'domestic');
 
-print "not " unless ($usd->format_price(123456.51) eq 'USD 123,456.51');
-print "ok 2\n";
+$usd->{int_frac_digits} = 4;
+$usd->{frac_digits} = 3;
 
-print "not " unless ($usd->format_price(1234567.509) eq 'USD 1,234,567.51');
-print "ok 3\n";
+is($usd->format_price(19.95, undef, 'currency_symbol'),
+   '$19.950', 'frac_digits');
+is($usd->format_price(19.95), 'USD19.9500', 'int frac digits');
 
-print "not " unless ($usd->format_price(1234.51, 3) eq 'USD 1,234.510');
-print "ok 4\n";
+$usd->{n_sign_posn} = 0;
+is($usd->format_price(-9.95), '(USD9.9500)', 'n_sign_posn=0');
 
-print "not " unless ($usd->format_price(123456789.1) eq 'USD 123,456,789.10');
-print "ok 5\n";
+$usd->{n_sign_posn} = 1;
+is($usd->format_price(-9.95), '-USD9.9500', 'n_sign_posn=1');
 
-print "not " unless ($usd->format_price(100, "0") eq 'USD 100');
-print "ok 6\n";
+$usd->{n_sign_posn} = 2;
+is($usd->format_price(-9.95), 'USD9.9500-', 'n_sign_posn=2');
+
+$usd->{n_sign_posn} = 3;
+is($usd->format_price(-9.95), '-USD9.9500', 'n_sign_posn=3');
+
+$usd->{n_sign_posn} = 4;
+is($usd->format_price(-9.95), 'USD-9.9500', 'n_sign_posn=4');
+
+$usd->{n_cs_precedes} = 1;
+$usd->{n_sign_posn} = 3;
+$usd->{n_sep_by_space} = 0;
+is($usd->format_price(-9.95), '-USD9.9500', 'cs_precedes=1,sep_by_space=0');
+
+$usd->{n_sep_by_space} = 1;
+is($usd->format_price(-9.95), '-USD 9.9500', 'cs_precedes=1,sep_by_space=1');
+
+$usd->{n_sep_by_space} = 2;
+is($usd->format_price(-9.95), '- USD9.9500', 'cs_precedes=1,sep_by_space=2');
+
+$usd->{n_cs_precedes} = 0;
+$usd->{n_sign_posn} = 3;
+$usd->{n_sep_by_space} = 0;
+is($usd->format_price(-9.95), '9.9500-USD', 'cs_precedes=0,sep_by_space=0');
+
+$usd->{n_sep_by_space} = 1;
+is($usd->format_price(-9.95), '9.9500 -USD', 'cs_precedes=0,sep_by_space=1');
+
+$usd->{n_sep_by_space} = 2;
+is($usd->format_price(-9.95), '9.9500- USD', 'cs_precedes=0,sep_by_space=2');
+my %results = ('sep=0 posn=0 prec=0'    => '(9.9500USD)',
+               'sep=0 posn=0 prec=1'    => '(USD9.9500)',
+               'sep=0 posn=1 prec=0'    => '-9.9500USD',
+               'sep=0 posn=1 prec=1'    => '-USD9.9500',
+               'sep=0 posn=2 prec=0'    => '9.9500USD-',
+               'sep=0 posn=2 prec=1'    => 'USD9.9500-',
+               'sep=0 posn=3 prec=0'    => '9.9500-USD',
+               'sep=0 posn=3 prec=1'    => '-USD9.9500',
+               'sep=0 posn=4 prec=0'    => '9.9500USD-',
+               'sep=0 posn=4 prec=1'    => 'USD-9.9500',
+               'sep=1 posn=0 prec=0'    => '(9.9500 USD)',
+               'sep=1 posn=0 prec=1'    => '(USD 9.9500)',
+               'sep=1 posn=1 prec=0'    => '-9.9500 USD',
+               'sep=1 posn=1 prec=1'    => '-USD 9.9500',
+               'sep=1 posn=2 prec=0'    => '9.9500 USD-',
+               'sep=1 posn=2 prec=1'    => 'USD 9.9500-',
+               'sep=1 posn=3 prec=0'    => '9.9500 -USD',
+               'sep=1 posn=3 prec=1'    => '-USD 9.9500',
+               'sep=1 posn=4 prec=0'    => '9.9500 USD-',
+               'sep=1 posn=4 prec=1'    => 'USD- 9.9500',
+               'sep=2 posn=0 prec=0'    => '(9.9500USD)',
+               'sep=2 posn=0 prec=1'    => '(USD9.9500)',
+               'sep=2 posn=1 prec=0'    => '- 9.9500USD',
+               'sep=2 posn=1 prec=1'    => '- USD9.9500',
+               'sep=2 posn=2 prec=0'    => '9.9500USD -',
+               'sep=2 posn=2 prec=1'    => 'USD9.9500 -',
+               'sep=2 posn=3 prec=0'    => '9.9500- USD',
+               'sep=2 posn=3 prec=1'    => '- USD9.9500',
+               'sep=2 posn=4 prec=0'    => '9.9500USD -',
+               'sep=2 posn=4 prec=1'    => 'USD -9.9500'
+              );
+
+foreach $sep (0..2)
+{
+    foreach $posn (0..4)
+    {
+        foreach $prec (0..1)
+        {
+            my $key = "sep=$sep posn=$posn prec=$prec";
+            my $want = $results{$key};
+            $usd->{n_cs_precedes} = $prec;
+            $usd->{n_sign_posn} = $posn;
+            $usd->{n_sep_by_space} = $sep;
+            is($usd->format_price(-9.95), $want, "$key -> $want");
+        }
+    }
+}

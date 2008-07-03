@@ -165,42 +165,102 @@ use strict;
 use Exporter;
 use Carp;
 use POSIX;
+use base qw(Exporter);
 
-our @ISA     = qw(Exporter);
+our @EXPORT_SUBS =
+    qw( format_number format_negative format_picture
+        format_price format_bytes round unformat_number );
 
-our @EXPORT_SUBS = qw(format_number format_negative format_picture
-                      format_price format_bytes round unformat_number);
-our @EXPORT_VARS = qw($DECIMAL_DIGITS $DECIMAL_FILL $DECIMAL_POINT
-                      $DEFAULT_LOCALE $INT_CURR_SYMBOL $KILO_SUFFIX
-                      $MEGA_SUFFIX $GIGA_SUFFIX $NEG_FORMAT $THOUSANDS_SEP);
-our @EXPORT_OK   = (@EXPORT_SUBS, @EXPORT_VARS);
-our %EXPORT_TAGS = (subs => \@EXPORT_SUBS,
-                    vars => \@EXPORT_VARS,
-                    all  => [ @EXPORT_SUBS, @EXPORT_VARS ]);
+our @EXPORT_LC_NUMERIC =
+    qw( $DECIMAL_POINT $THOUSANDS_SEP $GROUPING );
 
-our $VERSION = '1.52';
+our @EXPORT_LC_MONETARY =
+    qw( $INT_CURR_SYMBOL $CURRENCY_SYMBOL $MON_DECIMAL_POINT
+        $MON_THOUSANDS_SEP $MON_GROUPING $POSITIVE_SIGN $NEGATIVE_SIGN
+        $INT_FRAC_DIGITS $FRAC_DIGITS $P_CS_PRECEDES $P_SEP_BY_SPACE
+        $N_CS_PRECEDES $N_SEP_BY_SPACE $P_SIGN_POSN $N_SIGN_POSN );
 
-our $DECIMAL_POINT   = '.';
-our $THOUSANDS_SEP   = ',';
-our $INT_CURR_SYMBOL = 'USD';
-our $DECIMAL_DIGITS  = 2;
-our $DECIMAL_FILL    = 0;
-our $NEG_FORMAT      = '-x';
-our $KILO_SUFFIX     = 'K';
-our $MEGA_SUFFIX     = 'M';
-our $GIGA_SUFFIX     = 'G';
+our @EXPORT_OTHER =
+    qw( $DECIMAL_DIGITS $DECIMAL_FILL $NEG_FORMAT $KILO_SUFFIX
+        $MEGA_SUFFIX $GIGA_SUFFIX );
 
-our $DEFAULT_LOCALE = { (mon_thousands_sep => $THOUSANDS_SEP,
-                         mon_decimal_point => $DECIMAL_POINT,
-                         thousands_sep     => $THOUSANDS_SEP,
+our @EXPORT_VARS = ( @EXPORT_LC_NUMERIC, @EXPORT_LC_MONETARY, @EXPORT_OTHER );
+our @EXPORT_ALL  = ( @EXPORT_SUBS, @EXPORT_VARS );
+
+our @EXPORT_OK   = ( @EXPORT_ALL );
+
+our %EXPORT_TAGS = ( subs             => \@EXPORT_SUBS,
+                     vars             => \@EXPORT_VARS,
+                     lc_numeric_vars  => \@EXPORT_LC_NUMERIC,
+                     lc_monetary_vars => \@EXPORT_LC_MONETARY,
+                     other_vars       => \@EXPORT_OTHER,
+                     all              => \@EXPORT_ALL );
+
+our $VERSION = '1.60';
+
+# Refer to http://www.opengroup.org/onlinepubs/007908775/xbd/locale.html
+# for more details about the POSIX variables
+
+# Locale variables provided by POSIX for numbers (LC_NUMERIC)
+our $DECIMAL_POINT      = '.';  # decimal point symbol for numbers
+our $THOUSANDS_SEP      = ',';  # thousands separator for numbers
+our $GROUPING           = undef;# grouping rules for thousands (UNSUPPORTED)
+
+# Locale variables provided by POSIX for currency (LC_MONETARY)
+our $INT_CURR_SYMBOL    = 'USD';# intl currency symbol
+our $CURRENCY_SYMBOL    = '$';  # domestic currency symbol
+our $MON_DECIMAL_POINT  = '.';  # decimal point symbol for monetary values
+our $MON_THOUSANDS_SEP  = ',';  # thousands separator for monetary values
+our $MON_GROUPING       = undef;# like 'grouping' for monetary (UNSUPPORTED)
+our $POSITIVE_SIGN      = '';   # string to add for non-negative monetary
+our $NEGATIVE_SIGN      = '-';  # string to add for negative monetary
+our $INT_FRAC_DIGITS    = 2;    # digits to right of decimal for intl currency
+our $FRAC_DIGITS        = 2;    # digits to right of decimal for currency
+our $P_CS_PRECEDES      = 1;    # curr sym precedes(1) or follows(0) positive
+our $P_SEP_BY_SPACE     = 1;    # add space to positive; 0, 1, or 2
+our $N_CS_PRECEDES      = 1;    # curr sym precedes(1) or follows(0) negative
+our $N_SEP_BY_SPACE     = 1;    # add space to negative; 0, 1, or 2
+our $P_SIGN_POSN        = 1;    # sign rules for positive: 0-4
+our $N_SIGN_POSN        = 1;    # sign rules for negative: 0-4
+
+# The following are specific to Number::Format
+our $DECIMAL_DIGITS     = 2;
+our $DECIMAL_FILL       = 0;
+our $NEG_FORMAT         = '-x';
+our $KILO_SUFFIX        = 'K';
+our $MEGA_SUFFIX        = 'M';
+our $GIGA_SUFFIX        = 'G';
+
+our $DEFAULT_LOCALE = { (
+                         # LC_NUMERIC
                          decimal_point     => $DECIMAL_POINT,
+                         thousands_sep     => $THOUSANDS_SEP,
+                         grouping          => $GROUPING,
+
+                         # LC_MONETARY
                          int_curr_symbol   => $INT_CURR_SYMBOL,
+                         currency_symbol   => $CURRENCY_SYMBOL,
+                         mon_decimal_point => $MON_DECIMAL_POINT,
+                         mon_thousands_sep => $MON_THOUSANDS_SEP,
+                         mon_grouping      => $MON_GROUPING,
+                         positive_sign     => $POSITIVE_SIGN,
+                         negative_sign     => $NEGATIVE_SIGN,
+                         int_frac_digits   => $INT_FRAC_DIGITS,
+                         frac_digits       => $FRAC_DIGITS,
+                         p_cs_precedes     => $P_CS_PRECEDES,
+                         p_sep_by_space    => $P_SEP_BY_SPACE,
+                         n_cs_precedes     => $N_CS_PRECEDES,
+                         n_sep_by_space    => $N_SEP_BY_SPACE,
+                         p_sign_posn       => $P_SIGN_POSN,
+                         n_sign_posn       => $N_SIGN_POSN,
+
+                         # The following are specific to Number::Format
+                         decimal_digits    => $DECIMAL_DIGITS,
+                         decimal_fill      => $DECIMAL_FILL,
                          neg_format        => $NEG_FORMAT,
                          kilo_suffix       => $KILO_SUFFIX,
                          mega_suffix       => $MEGA_SUFFIX,
                          giga_suffix       => $GIGA_SUFFIX,
-                         decimal_digits    => $DECIMAL_DIGITS,
-                         decimal_fill      => $DECIMAL_FILL,
                         ) };
 
 ###---------------------------------------------------------------------
@@ -230,27 +290,33 @@ sub _get_self
 
 ##----------------------------------------------------------------------
 
-# _check_seps is used to validate that the thousands_sep and
-#     decimal_point variables have acceptable values.  For internal use
-#     only.
+# _check_seps is used to validate that the thousands_sep,
+#     decimal_point, mon_thousands_sep and mon_decimal_point variables
+#     have acceptable values.  For internal use only.
 
 sub _check_seps
 {
     my ($self) = @_;
     croak "Not an object" unless ref $self;
-    croak "Number::Format: {thousands_sep} is undefined\n"
-        unless defined $self->{thousands_sep};
-    croak "Number::Format: {thousands_sep} is too long (max 1 character)\n"
-        if length $self->{thousands_sep} > 1;
-    croak "Number::Format: {thousands_sep} may not be numeric\n"
-        if $self->{thousands_sep} =~ /\d/;
-    croak "Number::Format: {decimal_point} must be one character\n"
-        if length $self->{decimal_point} != 1;
-    croak "Number::Format: {decimal_point} may not be numeric\n"
-        if $self->{decimal_point} =~ /\d/;
-    croak("Number::Format: {thousands_sep} and {decimal_point} ".
-          "may not be equal\n")
-        if $self->{decimal_point} eq $self->{thousands_sep};
+    foreach my $prefix ("", "mon_")
+    {
+        croak("Number::Format: {${prefix}thousands_sep} is undefined\n")
+            unless defined $self->{"${prefix}thousands_sep"};
+        croak("Number::Format: ${prefix}thousands_sep is too long ".
+              "(max 1 character)\n")
+            if length $self->{"${prefix}thousands_sep"} > 1;
+        croak("Number::Format: ${prefix}thousands_sep may not be numeric\n")
+            if $self->{"${prefix}thousands_sep"} =~ /\d/;
+        croak("Number::Format: ${prefix}decimal_point must be ".
+              "one character\n")
+            if length $self->{"${prefix}decimal_point"} != 1;
+        croak("Number::Format: ${prefix}decimal_point may not be numeric\n")
+            if $self->{"${prefix}decimal_point"} =~ /\d/;
+        croak("Number::Format: ${prefix}thousands_sep and ".
+              "{${prefix}decimal_point may not be equal\n")
+            if $self->{"${prefix}decimal_point"} eq
+                $self->{"${prefix}thousands_sep"};
+    }
 }
 
 ###---------------------------------------------------------------------
@@ -286,28 +352,11 @@ sub new
     my $locale        = setlocale(LC_ALL);
     my $locale_values = localeconv();
     my $arg;
-    foreach $arg (keys %$locale_values)
-    {
-        $me->{$arg} = $locale_values->{$arg};
-    }
-    $me->{mon_decimal_point} ||= $DECIMAL_POINT;
-    $me->{mon_thousands_sep} ||= $THOUSANDS_SEP;
-    $me->{int_curr_symbol}   ||= $INT_CURR_SYMBOL;
-    $me->{decimal_digits}    ||= $DECIMAL_DIGITS;
-    $me->{decimal_fill}      ||= $DECIMAL_FILL;
-    $me->{neg_format}        ||= $NEG_FORMAT;
-    $me->{kilo_suffix}       ||= $KILO_SUFFIX;
-    $me->{mega_suffix}       ||= $MEGA_SUFFIX;
-    $me->{giga_suffix}       ||= $GIGA_SUFFIX;
-    $me->{thousands_sep}     ||= $me->{mon_thousands_sep};
-    $me->{decimal_point}     ||= $me->{mon_decimal_point};
 
-    # Override if given as arguments
-    foreach $arg (qw(thousands_sep decimal_point mon_thousands_sep
-                     mon_decimal_point int_curr_symbol decimal_digits
-                     decimal_fill neg_format kilo_suffix mega_suffix
-                     giga_suffix))
+    while(my($arg, $default) = each %$DEFAULT_LOCALE)
     {
+        $me->{$arg} = $locale_values->{$arg} || $default;
+
         foreach ($arg, uc $arg, "-$arg", uc "-$arg")
         {
             next unless defined $args{$_};
@@ -316,7 +365,7 @@ sub new
             last;
         }
     }
-    croak "Invalid args: ".join(',', keys %args)."\n" if %args;
+    croak("Invalid args: ".join(',', keys %args)."\n") if %args;
     bless $me, $type;
     $me;
 }
@@ -605,15 +654,20 @@ sub format_picture
 
 ##----------------------------------------------------------------------
 
-=item format_price($number, $precision)
+=item format_price($number, $precision, $symbol)
 
 Returns a string containing C<$number> formatted similarly to
 C<format_number()>, except that the decimal portion may have trailing
 zeroes added to make it be exactly C<$precision> characters long, and
 the currency string will be prefixed.
 
-If the C<INT_CURR_SYMBOL> attribute of the object is the empty string, no
-currency will be added.
+The C<$symbol> attribute may be one of "INT_CURR_SYMBOL" or
+"CURRENCY_SYMBOL" to use the value of that attribute of the object, or
+a string containing the symbol to be used.  The default is
+"INT_CURR_SYMBOL" if this argument is undefined or not given; if set
+to the empty string, or if set to undef and the C<INT_CURR_SYMBOL>
+attribute of the object is the empty string, no currency will be
+added.
 
 If C<$precision> is not provided, the default of 2 will be used.
 Examples:
@@ -628,10 +682,25 @@ The third example assumes that C<INT_CURR_SYMBOL> is the empty string.
 
 sub format_price
 {
-    my ($self, $number, $precision) = _get_self @_;
-    $precision = $self->{decimal_digits} unless defined $precision;
-    $precision = 2 unless defined $precision; # default
+    my ($self, $number, $precision, $curr_symbol) = _get_self @_;
 
+    # Determine what the monetary symbol should be
+    $curr_symbol = $self->{int_curr_symbol}
+        if (!defined($curr_symbol) || lc($curr_symbol) eq "int_curr_symbol");
+    $curr_symbol = $self->{currency_symbol}
+        if (!defined($curr_symbol) || lc($curr_symbol) eq "currency_symbol");
+    $curr_symbol = "" unless defined($curr_symbol);
+
+    # Determine which value to use for frac digits
+    my $frac_digits = ($curr_symbol eq $self->{int_curr_symbol} ?
+                       $self->{int_frac_digits} : $self->{frac_digits});
+
+    # Determine precision for decimal portion
+    $precision = $frac_digits            unless defined $precision;
+    $precision = $self->{decimal_digits} unless defined $precision; # fallback
+    $precision = 2                       unless defined $precision; # default
+
+    # Determine sign and absolute value
     my $sign = $number <=> 0;
     $number = abs($number) if $sign < 0;
 
@@ -642,14 +711,105 @@ sub format_price
     $decimal = '0'x$precision unless $decimal;
     $decimal .= '0'x($precision - length $decimal);
 
-    # Combine it all back together and return it.
-    $self->{int_curr_symbol} =~ s/\s*$/ /;
-    my $result = ($self->{int_curr_symbol} .
-                  ($precision ?
-                   join($self->{mon_decimal_point}, $integer, $decimal) :
-                   $integer));
+    # Extract positive or negative values
+    my($sep_by_space, $cs_precedes, $sign_posn, $sign_symbol);
+    if ($sign < 0)
+    {
+        $sep_by_space = $self->{n_sep_by_space};
+        $cs_precedes  = $self->{n_cs_precedes};
+        $sign_posn    = $self->{n_sign_posn};
+        $sign_symbol  = $self->{negative_sign};
+    }
+    else
+    {
+        $sep_by_space = $self->{p_sep_by_space};
+        $cs_precedes  = $self->{p_cs_precedes};
+        $sign_posn    = $self->{p_sign_posn};
+        $sign_symbol  = $self->{positive_sign};
+    }
 
-    return ($sign < 0) ? $self->format_negative($result) : $result;
+    # Combine it all back together.
+    my $result = ($precision ?
+                  join($self->{mon_decimal_point}, $integer, $decimal) :
+                  $integer);
+
+    # Determine where spaces go, if any
+    my($sign_sep, $curr_sep);
+    if ($sep_by_space == 0)
+    {
+        $sign_sep = $curr_sep = "";
+    }
+    elsif ($sep_by_space == 1)
+    {
+        $sign_sep = "";
+        $curr_sep = " ";
+    }
+    elsif ($sep_by_space == 2)
+    {
+        $sign_sep = " ";
+        $curr_sep = "";
+    }
+    else
+    {
+        croak "Invalid sep_by_space value";
+    }
+
+    # Add sign, if any
+    if ($sign_posn >= 0 && $sign_posn <= 2)
+    {
+        # Combine with currency symbol and return
+        if ($curr_symbol ne "")
+        {
+            if ($cs_precedes)
+            {
+                $result = $curr_symbol.$curr_sep.$result;
+            }
+            else
+            {
+                $result = $result.$curr_sep.$curr_symbol;
+            }
+        }
+
+        if ($sign_posn == 0)
+        {
+            return "($result)";
+        }
+        elsif ($sign_posn == 1)
+        {
+            return $sign_symbol.$sign_sep.$result;
+        }
+        else                    # $sign_posn == 2
+        {
+            return $result.$sign_sep.$sign_symbol;
+        }
+    }
+
+    elsif ($sign_posn == 3 || $sign_posn == 4)
+    {
+        if ($sign_posn == 3)
+        {
+            $curr_symbol = $sign_symbol.$sign_sep.$curr_symbol;
+        }
+        else                    # $sign_posn == 4
+        {
+            $curr_symbol = $curr_symbol.$sign_sep.$sign_symbol;
+        }
+
+        # Combine with currency symbol and return
+        if ($cs_precedes)
+        {
+            return $curr_symbol.$curr_sep.$result;
+        }
+        else
+        {
+            return $result.$curr_sep.$curr_symbol;
+        }
+    }
+
+    else
+    {
+        croak "Invalid *_sign_posn value";
+    }
 }
 
 ##----------------------------------------------------------------------
