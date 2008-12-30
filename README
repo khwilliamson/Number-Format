@@ -1,6 +1,6 @@
 Number::Format - Convert numbers to strings with pretty formatting
 
-Version: 1.60
+Version: 1.61
 
 WHAT IS IT
 
@@ -102,24 +102,17 @@ information.
 
 RECENT CHANGES
 
+Changes for version 1.61 (Dec 29, 2008)
+------------------------
+  - Fix bugs in locale operations for format_price (thanks Moritz Onken)
+  - Fix documentation in format_bytes (rt # 42036)
+  - Enable warning when format_bytes called with numeric precision not hash
+
 Changes for version 1.60 (Jul 2, 2008)
 ------------------------
   - Rewrite new() and format_price() to use mon_* POSIX Locale values
-
-Changes for version 1.52 (Sep 21, 2006)
-------------------------
-  - Minor patch to t/format_price.t addressing failling tests
-
-Changes for version 1.51 (Apr 26, 2006)
-------------------------
-  - Patch to t/format_price.t to work with non-US locales
-
-Changes for version 1.5 (Feb 14, 2005)
-------------------------
-  - Add Perl 5.8 and POSIX.pm to minimum requirements.
-  - Minor bug fixes - see CHANGES for details
-  - Change format_bytes to support options (precision, unit, and base)
-    instead of precision number
+  - Add all missing POSIX Locale variables
+    (Thanks to Kevin Ryde for help identifying the problem)
 
 See the file "CHANGES" for more details and previous changes.  You
 can also browse the CVS history on SourceForge for full details.

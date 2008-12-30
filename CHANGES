@@ -1,3 +1,9 @@
+Changes for version 1.61 (Dec 29, 2008)
+------------------------
+  - Fix bugs in locale operations for format_price (thanks Moritz Onken)
+  - Fix documentation in format_bytes (rt # 42036)
+  - Enable warning when format_bytes called with numeric precision not hash
+
 Changes for version 1.60 (Jul 2, 2008)
 ------------------------
   - Rewrite new() and format_price() to use mon_* POSIX Locale values
