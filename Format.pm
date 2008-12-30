@@ -19,7 +19,7 @@ Number::Format - Perl extension for formatting numbers
   $formatted = $x->format_number($number, $precision, $trailing_zeroes);
   $formatted = $x->format_negative($number, $picture);
   $formatted = $x->format_picture($number, $picture);
-  $formatted = $x->format_price($number, $precision);
+  $formatted = $x->format_price($number, $precision, $symbol);
   $formatted = $x->format_bytes($number, $precision);
   $number    = $x->unformat_number($formatted);
 
@@ -28,7 +28,7 @@ Number::Format - Perl extension for formatting numbers
   $formatted = format_number($number, $precision, $trailing_zeroes);
   $formatted = format_negative($number, $picture);
   $formatted = format_picture($number, $picture);
-  $formatted = format_price($number, $precision);
+  $formatted = format_price($number, $precision, $symbol);
   $formatted = format_bytes($number, $precision);
   $number    = unformat_number($formatted);
 
@@ -196,7 +196,7 @@ our %EXPORT_TAGS = ( subs             => \@EXPORT_SUBS,
                      other_vars       => \@EXPORT_OTHER,
                      all              => \@EXPORT_ALL );
 
-our $VERSION = '1.60';
+our $VERSION = '1.61';
 
 # Refer to http://www.opengroup.org/onlinepubs/007908775/xbd/locale.html
 # for more details about the POSIX variables
@@ -349,13 +349,15 @@ sub new
 
     # Fetch defaults from current locale, or failing that, using globals
     my $me            = {};
-    my $locale        = setlocale(LC_ALL);
+    # my $locale        = setlocale(LC_ALL, "");
     my $locale_values = localeconv();
     my $arg;
 
     while(my($arg, $default) = each %$DEFAULT_LOCALE)
     {
-        $me->{$arg} = $locale_values->{$arg} || $default;
+        $me->{$arg} = (exists $locale_values->{$arg}
+                       ? $locale_values->{$arg}
+                       : $default);
 
         foreach ($arg, uc $arg, "-$arg", uc "-$arg")
         {
@@ -365,6 +367,20 @@ sub new
             last;
         }
     }
+
+    #
+    # Some broken locales define the decimal_point but not the
+    # thousands_sep.  If decimal_point is set to "," the default
+    # thousands_sep will be a conflict.  In that case, set
+    # thousands_sep to empty string.  Suggested by Moritz Onken.
+    #
+    foreach my $prefix ("", "mon_")
+    {
+        $me->{"${prefix}thousands_sep"} = ""
+            if ($me->{"${prefix}decimal_point"} eq
+                $me->{"${prefix}thousands_sep"});
+    }
+
     croak("Invalid args: ".join(',', keys %args)."\n") if %args;
     bless $me, $type;
     $me;
@@ -662,12 +678,12 @@ zeroes added to make it be exactly C<$precision> characters long, and
 the currency string will be prefixed.
 
 The C<$symbol> attribute may be one of "INT_CURR_SYMBOL" or
-"CURRENCY_SYMBOL" to use the value of that attribute of the object, or
-a string containing the symbol to be used.  The default is
-"INT_CURR_SYMBOL" if this argument is undefined or not given; if set
-to the empty string, or if set to undef and the C<INT_CURR_SYMBOL>
-attribute of the object is the empty string, no currency will be
-added.
+"CURRENCY_SYMBOL" (case insensitive) to use the value of that
+attribute of the object, or a string containing the symbol to be used.
+The default is "INT_CURR_SYMBOL" if this argument is undefined or not
+given; if set to the empty string, or if set to undef and the
+C<INT_CURR_SYMBOL> attribute of the object is the empty string, no
+currency will be added.
 
 If C<$precision> is not provided, the default of 2 will be used.
 Examples:
@@ -814,7 +830,7 @@ sub format_price
 
 ##----------------------------------------------------------------------
 
-=item format_bytes($number, $options)
+=item format_bytes($number, %options)
 
 =item format_bytes($number, $precision)  # deprecated
 
@@ -823,11 +839,12 @@ C<format_number()>, except that large numbers may be abbreviated by
 adding C<$KILO_SUFFIX>, C<$MEGA_SUFFIX>, or C<$GIGA_SUFFIX>.  Negative
 values will result in an error.
 
-The second parameter can be either a reference to a hash that sets
-options, or a number.  Using a number here is deprecated; older
-versions of Number::Format only allowed a numeric value.  New code
-should use a hash reference instead.  If it is a number this sets the
-value of the "precision" option.
+The second parameter can be either a hash that sets options, or a
+number.  Using a number here is deprecated and will generate a
+warning; early versions of Number::Format only allowed a numeric
+value.  A future release of Number::Format will change this warning to
+an error.  New code should use a hash reference instead.  If it is a
+number this sets the value of the "precision" option.
 
 Valid options are:
 
@@ -838,9 +855,11 @@ Valid options are:
 Set the precision for displaying numbers.  If not provided, a default
 of 2 will be used.  Examples:
 
-  format_bytes(12.95)   yields   '12.95'
-  format_bytes(2048)    yields   '2K'
-  format_bytes(9999999) yields   '9.54M'
+  format_bytes(12.95)                   yields   '12.95'
+  format_bytes(12.95, precision => 0)   yields   '13'
+  format_bytes(2048)                    yields   '2K'
+  format_bytes(9999999)                 yields   '9.54M'
+  format_bytes(9999999, precision => 1) yields   '9.5M'
 
 =item unit
 
@@ -857,8 +876,8 @@ instead.  Acceptable values for C<unit> are: 'giga', 'mega', 'kilo',
 'g', 'm', 'k', 'n', or 'a'; they may be given in upper- or lowercase
 letters.  For example:
 
-  format_bytes(1048576, { units => 'K'}) yields     '1,024K'
-                                         instead of '1M'
+  format_bytes(1048576, unit => 'K') yields     '1,024K'
+                                     instead of '1M'
 
 Using 'none' as the unit blocks all unit conversion, and the function
 simply returns the result of format_number($number, $precision).  The
@@ -891,8 +910,8 @@ sub format_bytes
     my %options;
     if (@options == 1)
     {
-        # To be uncommented in a future release:
-        ### carp "format_bytes: number instead of options is deprecated";
+        # To be changed to 'croak' in a future release:
+        carp "format_bytes: number instead of options is deprecated";
         %options = ( precision => $options[0] );
     }
     else
