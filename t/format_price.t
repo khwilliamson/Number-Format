@@ -6,10 +6,24 @@ setlocale(&LC_ALL, 'en_US');
 
 BEGIN { use_ok('Number::Format') }
 
-my $usd = Number::Format->new(-int_curr_symbol => 'USD',
-                              -currency_symbol => '$',
-                              -p_sep_by_space  => 1,
-                              -n_sep_by_space  => 1);
+my $usd = Number::Format->new(
+                              -int_curr_symbol   => 'USD',
+                              -currency_symbol   => '$',
+                              -decimal_point     => '.',
+                              -frac_digits       => 2,
+                              -int_frac_digits   => 2,
+                              -n_cs_precedes     => 0,
+                              -n_cs_precedes     => 1,
+                              -n_sep_by_space    => 1,
+                              -n_sign_posn       => 1,
+                              -negative_sign     => '-',
+                              -p_cs_precedes     => 0,
+                              -p_cs_precedes     => 1,
+                              -p_sep_by_space    => 1,
+                              -p_sign_posn       => 1,
+                              -positive_sign     => '',
+                              -thousands_sep     => ',',
+                             );
 
 is($usd->format_price(123456.51),   'USD 123,456.51',     'thou');
 is($usd->format_price(1234567.509), 'USD 1,234,567.51',   'mill');

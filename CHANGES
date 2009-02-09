@@ -1,3 +1,8 @@
+Changes for version 1.62 (Feb 9, 2009)
+------------------------
+  - Change format_bytes to fully specify all formatting options, not
+    rely on locale at all as it was causing too many CPAN tester errors.
+
 Changes for version 1.61 (Dec 29, 2008)
 ------------------------
   - Fix bugs in locale operations for format_price (thanks Moritz Onken)

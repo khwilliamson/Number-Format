@@ -1,6 +1,6 @@
 Number::Format - Convert numbers to strings with pretty formatting
 
-Version: 1.61
+Version: 1.62
 
 WHAT IS IT
 
@@ -101,6 +101,11 @@ information.
 
 
 RECENT CHANGES
+
+Changes for version 1.62 (Feb 9, 2009)
+------------------------
+  - Change format_bytes to fully specify all formatting options, not
+    rely on locale at all as it was causing too many CPAN tester errors.
 
 Changes for version 1.61 (Dec 29, 2008)
 ------------------------

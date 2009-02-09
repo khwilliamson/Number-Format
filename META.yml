@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                Number-Format
-version:             1.61
+version:             1.62
 abstract:            ~
 license:             perl
 author:              ~
