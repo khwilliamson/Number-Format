@@ -1,10 +1,8 @@
 package Number::Format;
 
-# I use 5.10.0, and any older version of Perl may or may not work.  You
-# may be able to get it to work on older Perls by uncommenting this
-# line, but it is not supported.  I recommend you either upgrade Perl
-# or download an older version of this module in that case.
-require 5.010;
+# Minimum version is 5.8.0.  May work on earlier versions, but not
+# supported on any version older than 5.8.
+require 5.008;
 
 =head1 NAME
 
@@ -195,7 +193,7 @@ our %EXPORT_TAGS = ( subs             => \@EXPORT_SUBS,
                      other_vars       => \@EXPORT_OTHER,
                      all              => \@EXPORT_ALL );
 
-our $VERSION = '1.62';
+our $VERSION = '1.63';
 
 # Refer to http://www.opengroup.org/onlinepubs/007908775/xbd/locale.html
 # for more details about the POSIX variables

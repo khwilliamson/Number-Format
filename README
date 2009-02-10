@@ -102,6 +102,10 @@ information.
 
 RECENT CHANGES
 
+Changes for version 1.63 (Feb 10, 2009)
+------------------------
+  - Minor tweak to format_bytes test for German locales
+
 Changes for version 1.62 (Feb 9, 2009)
 ------------------------
   - Change format_bytes to fully specify all formatting options, not

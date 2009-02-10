@@ -23,6 +23,10 @@ my $usd = Number::Format->new(
                               -p_sign_posn       => 1,
                               -positive_sign     => '',
                               -thousands_sep     => ',',
+                              -mon_thousands_sep => ',',
+                              -decimal_fill      => 1,
+                              -decimal_digits    => 2,
+                              -mon_decimal_point => '.',
                              );
 
 is($usd->format_price(123456.51),   'USD 123,456.51',     'thou');
