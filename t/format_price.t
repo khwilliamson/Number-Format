@@ -135,3 +135,24 @@ foreach $sep (0..2)
         }
     }
 }
+
+
+my %prices = ( 1234    => "EUR 1.234,00",
+               56      => "EUR 56,00",
+               75.2345 => "EUR 75,23",
+               12578.5 => "EUR 12.578,50" );
+
+my $nf = Number::Format->new(
+                             mon_thousands_sep => q{.},
+                             mon_decimal_point => q{,},
+                             int_curr_symbol   => q{EUR},
+                             p_sep_by_space    => 1,
+                             decimal_digits    => 2,
+                             decimal_fill      => 1,
+                            );
+
+for my $price ( sort keys %prices )
+{
+    my $want = $prices{$price};
+    is($nf->format_price($price, 2), $want, "$price -> $want");
+}

@@ -56,9 +56,12 @@ formatting engine.  Valid parameters are:
   DECIMAL_DIGITS    - number of digits to the right of dec point (def 2)
   DECIMAL_FILL      - boolean; whether to add zeroes to fill out decimal
   NEG_FORMAT        - format to display negative numbers (def ``-x'')
-  KILO_SUFFIX       - suffix to add when format_bytes formats kilobytes
-  MEGA_SUFFIX       -    "    "  "    "        "         "    megabytes
-  GIGA_SUFFIX       -    "    "  "    "        "         "    gigabytes
+  KILO_SUFFIX       - suffix to add when format_bytes formats kilobytes (trad)
+  MEGA_SUFFIX       -    "    "  "    "        "         "    megabytes (trad)
+  GIGA_SUFFIX       -    "    "  "    "        "         "    gigabytes (trad)
+  KIBI_SUFFIX       - suffix to add when format_bytes formats kibibytes (iec)
+  MEBI_SUFFIX       -    "    "  "    "        "         "    mebibytes (iec)
+  GIBI_SUFFIX       -    "    "  "    "        "         "    gibibytes (iec)
 
 They may be specified in upper or lower case, with or without a
 leading hyphen ( - ).
@@ -97,6 +100,9 @@ the parameters are:
   KILO_SUFFIX       = 'K'
   MEGA_SUFFIX       = 'M'
   GIGA_SUFFIX       = 'G'
+  KIBI_SUFFIX       = 'KiB'
+  MEBI_SUFFIX       = 'MiB'
+  GIBI_SUFFIX       = 'GiB'
 
 Note however that when you first call one of the functions in this
 module I<without> using the object-oriented interface, further setting
@@ -121,7 +127,15 @@ calling C<format_negative()> if the number was less than 0.
 C<KILO_SUFFIX>, C<MEGA_SUFFIX>, and C<GIGA_SUFFIX> are used by
 C<format_bytes()> when the value is over 1024, 1024*1024, or
 1024*1024*1024, respectively.  The default values are "K", "M", and
-"G".  Note: we can not do TERA because of integer overflows on 32-bit
+"G".  These apply in the default "traditional" mode only.  Note: TERA
+or higher are not implemented because of integer overflows on 32-bit
+systems.
+
+C<KIBI_SUFFIX>, C<MEBI_SUFFIX>, and C<GIBI_SUFFIX> are used by
+C<format_bytes()> when the value is over 1024, 1024*1024, or
+1024*1024*1024, respectively.  The default values are "KiB", "MiB",
+and "GiB".  These apply in the "iso60027"" mode only.  Note: TEBI or
+higher are not implemented because of integer overflows on 32-bit
 systems.
 
 The only restrictions on C<DECIMAL_POINT> and C<THOUSANDS_SEP> are that
@@ -178,8 +192,9 @@ our @EXPORT_LC_MONETARY =
         $N_CS_PRECEDES $N_SEP_BY_SPACE $P_SIGN_POSN $N_SIGN_POSN );
 
 our @EXPORT_OTHER =
-    qw( $DECIMAL_DIGITS $DECIMAL_FILL $NEG_FORMAT $KILO_SUFFIX
-        $MEGA_SUFFIX $GIGA_SUFFIX );
+    qw( $DECIMAL_DIGITS $DECIMAL_FILL $NEG_FORMAT
+        $KILO_SUFFIX $MEGA_SUFFIX $GIGA_SUFFIX
+        $KIBI_SUFFIX $MEBI_SUFFIX $GIBI_SUFFIX );
 
 our @EXPORT_VARS = ( @EXPORT_LC_NUMERIC, @EXPORT_LC_MONETARY, @EXPORT_OTHER );
 our @EXPORT_ALL  = ( @EXPORT_SUBS, @EXPORT_VARS );
@@ -193,7 +208,7 @@ our %EXPORT_TAGS = ( subs             => \@EXPORT_SUBS,
                      other_vars       => \@EXPORT_OTHER,
                      all              => \@EXPORT_ALL );
 
-our $VERSION = '1.63';
+our $VERSION = '1.70';
 
 # Refer to http://www.opengroup.org/onlinepubs/007908775/xbd/locale.html
 # for more details about the POSIX variables
@@ -227,6 +242,9 @@ our $NEG_FORMAT         = '-x';
 our $KILO_SUFFIX        = 'K';
 our $MEGA_SUFFIX        = 'M';
 our $GIGA_SUFFIX        = 'G';
+our $KIBI_SUFFIX        = 'KiB';
+our $MEBI_SUFFIX        = 'MiB';
+our $GIBI_SUFFIX        = 'GiB';
 
 our $DEFAULT_LOCALE = { (
                          # LC_NUMERIC
@@ -258,6 +276,9 @@ our $DEFAULT_LOCALE = { (
                          kilo_suffix       => $KILO_SUFFIX,
                          mega_suffix       => $MEGA_SUFFIX,
                          giga_suffix       => $GIGA_SUFFIX,
+                         kibi_suffix       => $KIBI_SUFFIX,
+                         mebi_suffix       => $MEBI_SUFFIX,
+                         gibi_suffix       => $GIBI_SUFFIX,
                         ) };
 
 ###---------------------------------------------------------------------
@@ -348,6 +369,7 @@ sub new
     my $me            = {};
     # my $locale        = setlocale(LC_ALL, "");
     my $locale_values = localeconv();
+
     my $arg;
 
     while(my($arg, $default) = each %$DEFAULT_LOCALE)
@@ -456,8 +478,12 @@ C<DECIMAL_POINT> instead of ',' and '.' respectively.
 
 sub format_number
 {
-    my ($self, $number, $precision, $trailing_zeroes) = _get_self @_;
+    my ($self, $number, $precision, $trailing_zeroes, $mon) = _get_self @_;
     $self->_check_seps();       # first make sure the SEP variables are valid
+
+    my($thousands_sep, $decimal_point) =
+        $mon ? @$self{qw(mon_thousands_sep mon_decimal_point)}
+            : @$self{qw(thousands_sep decimal_point)};
 
     # Set defaults and standardize number
     $precision = $self->{decimal_digits}     unless defined $precision;
@@ -494,23 +520,23 @@ sub format_number
 
     # Add the commas (or whatever is in thousands_sep).  If
     # thousands_sep is the empty string, do nothing.
-    if ($self->{thousands_sep})
+    if ($thousands_sep)
     {
         # Add leading 0's so length($integer) is divisible by 3
         $integer = '0'x(3 - (length($integer) % 3)).$integer;
 
         # Split $integer into groups of 3 characters and insert commas
-        $integer = join($self->{thousands_sep},
+        $integer = join($thousands_sep,
                         grep {$_ ne ''} split(/(...)/, $integer));
 
         # Strip off leading zeroes and/or comma
-        $integer =~ s/^0+\Q$self->{thousands_sep}\E?//;
+        $integer =~ s/^0+\Q$thousands_sep\E?//;
     }
     $integer = '0' if $integer eq '';
 
     # Combine integer and decimal parts and return the result.
     my $result = ((defined $decimal && length $decimal) ?
-                  join($self->{decimal_point}, $integer, $decimal) :
+                  join($decimal_point, $integer, $decimal) :
                   $integer);
 
     return ($sign < 0) ? $self->format_negative($result) : $result;
@@ -717,7 +743,9 @@ sub format_price
     my $sign = $number <=> 0;
     $number = abs($number) if $sign < 0;
 
-    $number = $self->format_number($number, $precision); # format it first
+    # format it first
+    $number = $self->format_number($number, $precision, undef, 1);
+
     # Now we make sure the decimal part has enough zeroes
     my ($integer, $decimal) =
         split(/\Q$self->{mon_decimal_point}\E/, $number, 2);
@@ -833,15 +861,18 @@ sub format_price
 
 Returns a string containing C<$number> formatted similarly to
 C<format_number()>, except that large numbers may be abbreviated by
-adding C<$KILO_SUFFIX>, C<$MEGA_SUFFIX>, or C<$GIGA_SUFFIX>.  Negative
-values will result in an error.
+adding a suffix to indicate 1024, 1,048,576, or 1,073,741,824 bytes.
+Suffix may be the traditional K, M, or G (default); or the IEC
+standard 60027 "KiB," "MiB," or "GiB" depending on the "mode" option.
+
+Negative values will result in an error.
 
 The second parameter can be either a hash that sets options, or a
 number.  Using a number here is deprecated and will generate a
 warning; early versions of Number::Format only allowed a numeric
 value.  A future release of Number::Format will change this warning to
-an error.  New code should use a hash reference instead.  If it is a
-number this sets the value of the "precision" option.
+an error.  New code should use a hash instead to set options.  If it
+is a number this sets the value of the "precision" option.
 
 Valid options are:
 
@@ -855,6 +886,7 @@ of 2 will be used.  Examples:
   format_bytes(12.95)                   yields   '12.95'
   format_bytes(12.95, precision => 0)   yields   '13'
   format_bytes(2048)                    yields   '2K'
+  format_bytes(2048, mode => "iec")     yields   '2KiB'
   format_bytes(9999999)                 yields   '9.54M'
   format_bytes(9999999, precision => 1) yields   '9.5M'
 
@@ -862,27 +894,23 @@ of 2 will be used.  Examples:
 
 Sets the default units used for the results.  The default is to
 determine this automatically in order to minimize the length of the
-string.  In other words, numbers greater than or equal to 1024 will be
-divided by 1024 and C<$KILO_SUFFIX> added; if greater than or equal to
-1048576 (1024*1024), it will be divided by 1048576 and "M" appended to
-the end; etc.
+string.  In other words, numbers greater than or equal to 1024 (or
+other number given by the 'base' option, q.v.) will be divided by 1024
+and C<$KILO_SUFFIX> or C<$KIBI_SUFFIX> added; if greater than or equal
+to 1048576 (1024*1024), it will be divided by 1048576 and
+C<$MEGA_SUFFIX> or C<$MEBI_SUFFIX> appended to the end; etc.
 
 However if a value is given for C<unit> it will use that value
-instead.  Acceptable values for C<unit> are: 'giga', 'mega', 'kilo',
-'none', or 'auto'.  These may be abbreviated to their first letters
-'g', 'm', 'k', 'n', or 'a'; they may be given in upper- or lowercase
-letters.  For example:
+instead.  The first letter (case-insensitive) of the value given
+indicates the threshhold for conversion; acceptable values are G (for
+giga/gibi), M (for mega/mebi), K (for kilo/kibi), or A (for automatic,
+the default).  For example:
 
   format_bytes(1048576, unit => 'K') yields     '1,024K'
                                      instead of '1M'
 
-Using 'none' as the unit blocks all unit conversion, and the function
-simply returns the result of format_number($number, $precision).  The
-default behavior can be obtained by specifying 'auto'.
-
 Note that the valid values to this option do not vary even when the
-C<$GIGA_SUFFIX>, C<$MEGA_SUFFIX>, and C<$KILO_SUFFIX> variables have
-been changed.
+suffix configuration variables have been changed.
 
 =item base
 
@@ -890,6 +918,24 @@ Sets the number at which the C<$KILO_SUFFIX> is added.  Default is
 1024.  Set to any value; the only other useful value is probably 1000,
 as hard disk manufacturers use that number to make their disks sound
 bigger than they really are.
+
+If the mode (see below) is set to "iec" or "iec60027" then setting the
+base option results in an error.
+
+=item mode
+
+Traditionally, bytes have been given in SI (metric) units such as
+"kilo" and "mega" even though they represent powers of 2 (1024, etc.)
+rather than powers of 10 (1000, etc.)  This "binary prefix" causes
+much confusion in consumer products where "GB" may mean either
+1,048,576 or 1,000,000, for example.  The International
+Electrotechnical Commission has created standard IEC 60027 to
+introduce prefixes Ki, Mi, Gi, etc. ("kibibytes," "mebibytes,"
+"gibibytes," etc.) to remove this confusion.  Specify a mode option
+with either "traditional" or "iec60027" (or abbreviate as "trad" or
+"iec") to indicate which type of binary prefix you want format_bytes
+to use.  For backward compatibility, "traditional" is the default.
+See http://en.wikipedia.org/wiki/Binary_prefix for more information.
 
 =back
 
@@ -922,6 +968,25 @@ sub format_bytes
     $options{precision} = 2
         unless defined $options{precision}; # default
 
+    $options{mode} ||= "traditional";
+    my($ksuff, $msuff, $gsuff);
+    if ($options{mode} =~ /^iec(60027)?$/i)
+    {
+        ($ksuff, $msuff, $gsuff) =
+            @$self{qw(kibi_suffix mebi_suffix gibi_suffix)};
+        croak "base option not allowed in iec60027 mode"
+            if exists $options{base};
+    }
+    elsif ($options{mode} =~ /^trad(itional)?$/i)
+    {
+        ($ksuff, $msuff, $gsuff) =
+            @$self{qw(kilo_suffix mega_suffix giga_suffix)};
+    }
+    else
+    {
+        croak "Invalid mode";
+    }
+
     # Set default for "base" option.  Calculate threshold values for
     # kilo, mega, and giga values.  On 32-bit systems tera would cause
     # overflows so it is not supported.  Useful values of "base" are
@@ -929,9 +994,9 @@ sub format_bytes
     # cause overflows for giga or even mega, however.
     $options{base} = 1024
         unless defined $options{base};
-    my $kilo_th = $options{base};
-    my $mega_th = $options{base} ** 2;
-    my $giga_th = $options{base} ** 3;
+    my $kilo_th = $options{base} == 1024 ? 0x00000400 : $options{base};
+    my $mega_th = $options{base} == 1024 ? 0x00100000 : $options{base} ** 2;
+    my $giga_th = $options{base} == 1024 ? 0x40000000 : $options{base} ** 3;
 
     # Process "unit" option.  Set default, then take first character
     # and convert to upper case.
@@ -967,17 +1032,17 @@ sub format_bytes
     if ($unit eq 'G')
     {
         $number /= $giga_th;
-        $suffix = $self->{giga_suffix};
+        $suffix = $gsuff;
     }
     elsif ($unit eq 'M')
     {
         $number /= $mega_th;
-        $suffix = $self->{mega_suffix};
+        $suffix = $msuff;
     }
     elsif ($unit eq 'K')
     {
         $number /= $kilo_th;
-        $suffix = $self->{kilo_suffix};
+        $suffix = $ksuff;
     }
     elsif ($unit ne 'N')
     {
