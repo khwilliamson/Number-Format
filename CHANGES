@@ -1,3 +1,15 @@
+Changes for version 1.71 (May 3, 2009)
+------------------------
+  - Changes to tests t/format_price.t, t/locale.t, and t/round.t to
+    fix cpan tester errors
+  - No change to Format.pm itself
+
+Changes for version 1.70 (Feb 13, 2009)
+------------------------
+  - Add support for IEC60027 (Ki, Mi, Gi prefixes) with mode option
+  - Use hard coded hex values for base multiplier when base is 1024
+  - Use mon_ settings in format_number when called from format_price
+
 Changes for version 1.63 (Feb 10, 2009)
 ------------------------
   - Minor tweak to format_bytes test for German locales

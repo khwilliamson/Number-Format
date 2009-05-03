@@ -18,6 +18,7 @@ SKIP:
     $german->{n_cs_precedes}  = $german->{p_cs_precedes}  = '0';
     $german->{n_sep_by_space} = $german->{p_sep_by_space} = '1';
     $german->{thousands_sep}  = '.';
+    $german->{decimal_point}  = ',';
 
     foreach my $key (sort keys %should)
     {
