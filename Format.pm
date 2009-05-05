@@ -4,6 +4,9 @@ package Number::Format;
 # supported on any version older than 5.8.
 require 5.008;
 
+use strict;
+use warnings;
+
 =head1 NAME
 
 Number::Format - Perl extension for formatting numbers
@@ -208,7 +211,7 @@ our %EXPORT_TAGS = ( subs             => \@EXPORT_SUBS,
                      other_vars       => \@EXPORT_OTHER,
                      all              => \@EXPORT_ALL );
 
-our $VERSION = '1.71';
+our $VERSION = '1.72';
 
 # Refer to http://www.opengroup.org/onlinepubs/007908775/xbd/locale.html
 # for more details about the POSIX variables
@@ -281,6 +284,16 @@ our $DEFAULT_LOCALE = { (
                          gibi_suffix       => $GIBI_SUFFIX,
                         ) };
 
+#
+# Largest integer a 32-bit Perl can handle is based on the mantissa
+# size of a double float, which is up to 53 bits.  While we may be
+# able to support larger values on 64-bit systems, some Perl integer
+# operations on 64-bit integer systems still use the 53-bit-mantissa
+# double floats.  To be safe, we cap at 2**53; use Math::BigFloat
+# instead for larger numbers.
+#
+use constant MAX_INT => 2**53;
+
 ###---------------------------------------------------------------------
 
 # INTERNAL FUNCTIONS
@@ -318,22 +331,48 @@ sub _check_seps
     croak "Not an object" unless ref $self;
     foreach my $prefix ("", "mon_")
     {
-        croak("Number::Format: {${prefix}thousands_sep} is undefined\n")
+        croak "${prefix}thousands_sep is undefined"
             unless defined $self->{"${prefix}thousands_sep"};
-        croak("Number::Format: ${prefix}thousands_sep is too long ".
-              "(max 1 character)\n")
-            if length $self->{"${prefix}thousands_sep"} > 1;
-        croak("Number::Format: ${prefix}thousands_sep may not be numeric\n")
+        croak "${prefix}thousands_sep may not be numeric"
             if $self->{"${prefix}thousands_sep"} =~ /\d/;
-        croak("Number::Format: ${prefix}decimal_point must be ".
-              "one character\n")
-            if length $self->{"${prefix}decimal_point"} != 1;
-        croak("Number::Format: ${prefix}decimal_point may not be numeric\n")
+        croak "${prefix}decimal_point may not be numeric"
             if $self->{"${prefix}decimal_point"} =~ /\d/;
-        croak("Number::Format: ${prefix}thousands_sep and ".
-              "{${prefix}decimal_point may not be equal\n")
+        croak("${prefix}thousands_sep and ".
+              "${prefix}decimal_point may not be equal")
             if $self->{"${prefix}decimal_point"} eq
                 $self->{"${prefix}thousands_sep"};
+    }
+}
+
+##----------------------------------------------------------------------
+
+# _get_multipliers returns the multipliers to be used for kilo, mega,
+# and giga (un-)formatting.  Used in format_bytes and unformat_number.
+# For internal use only.
+
+sub _get_multipliers
+{
+    my($base) = @_;
+    if (!defined($base) || $base == 1024)
+    {
+        return ( kilo => 0x00000400,
+                 mega => 0x00100000,
+                 giga => 0x40000000 );
+    }
+    elsif ($base == 1000)
+    {
+        return ( kilo => 1_000,
+                 mega => 1_000_000,
+                 giga => 1_000_000_000 );
+    }
+    else
+    {
+        croak "base overflow" if $base **3 > MAX_INT;
+        croak "base must be a positive integer"
+            unless $base > 0 && $base == int($base);
+        return ( kilo => $base,
+                 mega => $base ** 2,
+                 giga => $base ** 3 );
     }
 }
 
@@ -400,7 +439,7 @@ sub new
                 $me->{"${prefix}thousands_sep"});
     }
 
-    croak("Invalid args: ".join(',', keys %args)."\n") if %args;
+    croak "Invalid argument(s)" if %args;
     bless $me, $type;
     $me;
 }
@@ -435,10 +474,17 @@ sub round
     $precision = 2 unless defined $precision;
     $number    = 0 unless defined $number;
 
-    my $sign = $number <=> 0;
+    my $sign       = $number <=> 0;
     my $multiplier = (10 ** $precision);
-    my $result = abs($number);
-    $result = int(($result * $multiplier) + .5000001) / $multiplier;
+    my $result     = abs($number);
+    my $product    = $result * $multiplier;
+
+    croak "round() overflow. Try smaller precision or use Math::BigFloat"
+        if $product > MAX_INT;
+
+    # We need to add 1e-14 to avoid some rounding errors due to the
+    # way floating point numbers work - see string-eq test in t/round.t
+    $result = int($product + .5 + 1e-14) / $multiplier;
     $result = -$result if $sign < 0;
     return $result;
 }
@@ -559,7 +605,7 @@ sub format_negative
 {
     my($self, $number, $format) = _get_self @_;
     $format = $self->{neg_format} unless defined $format;
-    croak "Letter x must be present in picture in format_negative()\n"
+    croak "Letter x must be present in picture in format_negative()"
         unless $format =~ /x/;
     $number =~ s/^-//;
     $format =~ s/x/$number/;
@@ -622,9 +668,7 @@ sub format_picture
     $pic_int = '' unless defined $pic_int;
     $pic_dec = '' unless defined $pic_dec;
 
-    croak("Number::Format::format_picture($number, $picture): ".
-          "Only one decimal separator($self->{decimal_point}) ".
-          "permitted in picture.\n")
+    croak "Only one decimal separator permitted in picture"
         if @cruft;
 
     # Obtain precision from the length of the decimal part...
@@ -649,6 +693,7 @@ sub format_picture
     if (length $num_int > $intsize)
     {
         $picture =~ s/\#/\*/g;  # convert # to * and return it
+        $pic_prefix = "" unless defined $pic_prefix;
         $picture =~ s/^(\Q$sign_prefix\E)(\Q$pic_prefix\E)(\s*)/$2$3$1/;
         return $picture;
     }
@@ -945,7 +990,7 @@ sub format_bytes
 {
     my ($self, $number, @options) = _get_self @_;
 
-    croak "Negative number ($number) not allowed in format_bytes\n"
+    croak "Negative number not allowed in format_bytes"
         if $number < 0;
 
     # If a single scalar is given instead of key/value pairs for
@@ -992,11 +1037,7 @@ sub format_bytes
     # overflows so it is not supported.  Useful values of "base" are
     # 1024 or 1000, but any number can be used.  Larger numbers may
     # cause overflows for giga or even mega, however.
-    $options{base} = 1024
-        unless defined $options{base};
-    my $kilo_th = $options{base} == 1024 ? 0x00000400 : $options{base};
-    my $mega_th = $options{base} == 1024 ? 0x00100000 : $options{base} ** 2;
-    my $giga_th = $options{base} == 1024 ? 0x40000000 : $options{base} ** 3;
+    my %mult = _get_multipliers($options{base});
 
     # Process "unit" option.  Set default, then take first character
     # and convert to upper case.
@@ -1008,15 +1049,15 @@ sub format_bytes
     # automatically determine which unit to use.
     if ($unit eq 'A')
     {
-        if ($number >= $giga_th)
+        if ($number >= $mult{giga})
         {
             $unit = 'G';
         }
-        elsif ($number >= $mega_th)
+        elsif ($number >= $mult{mega})
         {
             $unit = 'M';
         }
-        elsif ($number >= $kilo_th)
+        elsif ($number >= $mult{kilo})
         {
             $unit = 'K';
         }
@@ -1031,22 +1072,22 @@ sub format_bytes
     my $suffix = "";
     if ($unit eq 'G')
     {
-        $number /= $giga_th;
+        $number /= $mult{giga};
         $suffix = $gsuff;
     }
     elsif ($unit eq 'M')
     {
-        $number /= $mega_th;
+        $number /= $mult{mega};
         $suffix = $msuff;
     }
     elsif ($unit eq 'K')
     {
-        $number /= $kilo_th;
+        $number /= $mult{kilo};
         $suffix = $ksuff;
     }
     elsif ($unit ne 'N')
     {
-        croak "format_bytes: Invalid unit option \"$options{unit}\"";
+        croak "Invalid unit option";
     }
 
     # Format the number and add the suffix.
@@ -1076,27 +1117,52 @@ If the number matches the pattern of C<NEG_FORMAT> I<or> there is a
 ``-'' character before any of the digits, then a negative number is
 returned.
 
-If the number ends with the C<KILO_SUFFIX> or C<MEGA_SUFFIX>
-characters, then the number returned will be multiplied by 1024 or
-1024*1024 as appropriate.
+If the number ends with the C<KILO_SUFFIX>, C<KIBI_SUFFIX>,
+C<MEGA_SUFFIX>, C<MEBI_SUFFIX>, C<GIGA_SUFFIX>, or C<GIBI_SUFFIX>
+characters, then the number returned will be multiplied by the
+appropriate multiple of 1024 (or if the base option is given, by the
+multiple of that value) as appropriate.  Examples:
+
+  unformat_number("4K", base => 1024)   yields  4096
+  unformat_number("4K", base => 1000)   yields  4000
+  unformat_number("4KiB", base => 1024) yields  4096
+  unformat_number("4G")                 yields  4294967296
 
 =cut
 
 sub unformat_number
 {
-    my ($self, $formatted) = _get_self @_;
+    my ($self, $formatted, %options) = _get_self @_;
     $self->_check_seps();
     return undef unless $formatted =~ /\d/; # require at least one digit
 
-    # Detect if it ends with the kilo or mega suffix.
-    my $kp = ($formatted =~ s/$self->{kilo_suffix}\s*$//);
-    my $mp = ($formatted =~ s/$self->{mega_suffix}\s*$//);
+    # Regular expression for detecting decimal point
+    my $pt = qr/\Q$self->{decimal_point}\E/;
+
+    # ru_RU locale has comma for decimal_point, but period for
+    # mon_decimal_point!  But as long as thousands_sep is different
+    # from either, we can allow either decimal point.
+    if ($self->{mon_decimal_point} &&
+        $self->{decimal_point} ne $self->{mon_decimal_point} &&
+        $self->{decimal_point} ne $self->{mon_thousands_sep} &&
+        $self->{mon_decimal_point} ne $self->{thousands_sep})
+    {
+        $pt = qr/(?:\Q$self->{decimal_point}\E|
+                    \Q$self->{mon_decimal_point}\E)/x;
+    }
+
+    # Detect if it ends with one of the kilo / mega / giga suffixes.
+    my $kp = ($formatted =~
+              s/\s*($self->{kilo_suffix}|$self->{kibi_suffix})\s*$//);
+    my $mp = ($formatted =~
+              s/\s*($self->{mega_suffix}|$self->{mebi_suffix})\s*$//);
+    my $gp = ($formatted =~
+              s/\s*($self->{giga_suffix}|$self->{gibi_suffix})\s*$//);
+    my %mult = _get_multipliers($options{base});
 
     # Split number into integer and decimal parts
-    my ($integer, $decimal, @cruft) =
-        split(/\Q$self->{decimal_point}\E/, $formatted);
-    croak("Number::Format::unformat_number($formatted): ".
-          "Only one decimal separator($self->{decimal_point}) permitted.\n")
+    my ($integer, $decimal, @cruft) = split($pt, $formatted);
+    croak "Only one decimal separator permitted"
         if @cruft;
 
     # It's negative if the first non-digit character is a -
@@ -1115,8 +1181,9 @@ sub unformat_number
     $number = -$number if $sign < 0;
 
     # Scale the number if it ended in kilo or mega suffix.
-    $number *= 1024    if $kp;
-    $number *= 1048576 if $mp;
+    $number *= $mult{kilo} if $kp;
+    $number *= $mult{mega} if $mp;
+    $number *= $mult{giga} if $gp;
 
     return $number;
 }

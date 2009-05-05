@@ -1,6 +1,9 @@
 # -*- CPerl -*-
 
 use Test::More qw(no_plan);
+use strict;
+use warnings;
+
 use POSIX;
 setlocale(&LC_ALL, 'en_US');
 
@@ -118,11 +121,11 @@ my %results = ('sep=0 posn=0 prec=0'    => '(9.9500USD)',
                'sep=2 posn=4 prec=1'    => 'USD -9.9500'
               );
 
-foreach $sep (0..2)
+foreach my $sep (0..2)
 {
-    foreach $posn (0..4)
+    foreach my $posn (0..4)
     {
-        foreach $prec (0..1)
+        foreach my $prec (0..1)
         {
             my $key = "sep=$sep posn=$posn prec=$prec";
             my $want = $results{$key};

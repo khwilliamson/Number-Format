@@ -1,6 +1,8 @@
 # -*- CPerl -*-
 
-use Test::More tests => 18;
+use Test::More qw(no_plan);
+use strict;
+use warnings;
 
 BEGIN { use_ok('Number::Format', ':subs') }
 

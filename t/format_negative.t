@@ -1,6 +1,9 @@
 # -*- CPerl -*-
 
 use Test::More qw(no_plan);
+use strict;
+use warnings;
+
 use POSIX;
 setlocale(&LC_ALL, 'en_US');
 

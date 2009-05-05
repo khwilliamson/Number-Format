@@ -1,6 +1,8 @@
 # -*- CPerl -*-
 
-use Test::More tests => 5;
+use Test::More qw(no_plan);
+use strict;
+use warnings;
 
 BEGIN { use_ok('Number::Format') }
 BEGIN { use_ok('POSIX') }
@@ -20,15 +22,33 @@ SKIP:
     $german->{thousands_sep}  = '.';
     $german->{decimal_point}  = ',';
 
-    foreach my $key (sort keys %should)
-    {
-        next if $locale_values->{$key} eq $should{$key};
-        warn "$key: '$locale_values->{$key}' != '$should{$key}'\n";
-    }
+    my $curr = $german->{int_curr_symbol}; # may be EUR or DEM
+    my $num  = "123.456,79";
 
-    my $curr   = $german->{int_curr_symbol}; # may be EUR or DEM
-    is($german->format_price(123456.789), "123.456,79 $curr", "German money");
+    is($german->format_price(123456.789), "$num $curr", "euros");
+    is($german->unformat_number($num), 123456.79, "unformat German");
 }
+
+SKIP:
+{
+    setlocale(&LC_ALL, 'ru_RU')
+        or setlocale(&LC_ALL, 'ru_RU.utf8')
+            or setlocale(&LC_ALL, 'ru_RU.ISO8859-5')
+                or skip("Unable to set ru_RU locale", 1);
+    my $russian = Number::Format->new();
+
+    my $sep = $russian->{mon_thousands_sep};
+    my $dec = $russian->{mon_decimal_point};
+    my $num = "123${sep}456${dec}79";
+
+    is($russian->format_price(123456.789), "$num RUB ", "rubles");
+    is($russian->unformat_number("$num RUB "), 123456.79, "unformat rubles");
+    is($russian->unformat_number($num), 123456.79, "unformat Russian 1");
+    $num = "123${sep}456$russian->{decimal_point}79";
+    is($russian->unformat_number($num), 123456.79, "unformat Russian 2");
+}
+
+my $num = "123,456.79";
 
 SKIP:
 {
@@ -37,11 +57,14 @@ SKIP:
             or setlocale(&LC_ALL, 'en_US.ISO8859-1')
                 or skip("Unable to set en_US locale", 1);
     my $english = Number::Format->new();
-    is($english->format_price(123456.789), 'USD 123,456.79', 'USD');
+
+    is($english->format_price(123456.789), "USD $num", "USD");
+    is($english->unformat_number($num), 123456.79, "unformat English");
 }
 
-setlocale(&LC_ALL, 'C')
+setlocale(&LC_ALL, "C")
     or skip("Unable to set en_US locale", 1);
 my $c = Number::Format->new();
 is($c->format_price(123456.789, 2, "currency_symbol"),
-   '$ 123,456.79', 'Dollar sign');
+   "\$ $num", "Dollar sign");
+is($c->unformat_number($num), 123456.79, "unformat C");

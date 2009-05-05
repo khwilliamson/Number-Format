@@ -1,6 +1,9 @@
 # -*- CPerl -*-
 
 use Test::More qw(no_plan);
+use strict;
+use warnings;
+
 use POSIX;
 setlocale(&LC_ALL, 'en_US');
 
@@ -8,18 +11,29 @@ BEGIN { use_ok('Number::Format', ':subs') }
 
 use constant PI => 4*atan2(1,1);
 
-cmp_ok(round(0),                'eq', 0,            'identity');
-cmp_ok(round(1),                'eq', 1,            'identity');
-cmp_ok(round(-1),               'eq', -1,           'identity');
-cmp_ok(round(PI,2),             'eq', 3.14,         'pi with precision=2');
-cmp_ok(round(PI,3),             'eq', 3.142,        'pi with precision=3');
-cmp_ok(round(PI,4),             'eq', 3.1416,       'pi with precision=4');
-cmp_ok(round(PI,5),             'eq', 3.14159,      'pi with precision=5');
-cmp_ok(round(PI,6),             'eq', 3.141593,     'pi with precision=6');
-cmp_ok(round(PI,7),             'eq', 3.1415927,    'pi with precision=7');
-cmp_ok(round(123456.512),       'eq', 123456.51,    'precision=0' );
-cmp_ok(round(-1234567.509, 2),  'eq', -1234567.51,  'negative thousandths' );
-cmp_ok(round(-12345678.5, 2),   'eq', -12345678.5,  'negative tenths' );
-cmp_ok(round(-123456.78951, 4), 'eq', -123456.7895, 'precision=4' );
-cmp_ok(round(123456.78951, -2), 'eq', 123500,       'precision=-2' );
-is(    round(1.005, 2),               1.01,         'string-eq' );
+ok(compare_numbers(round(0), 0),                           'identity 0');
+ok(compare_numbers(round(1), 1),                           'identity 1');
+ok(compare_numbers(round(-1), -1),                         'identity -1');
+ok(compare_numbers(round(PI,2), 3.14),                     'pi prec=2');
+ok(compare_numbers(round(PI,3), 3.142),                    'pi prec=3');
+ok(compare_numbers(round(PI,4), 3.1416),                   'pi prec=4');
+ok(compare_numbers(round(PI,5), 3.14159),                  'pi prec=5');
+ok(compare_numbers(round(PI,6), 3.141593),                 'pi prec=6');
+ok(compare_numbers(round(PI,7), 3.1415927),                'pi prec=7');
+ok(compare_numbers(round(123456.512), 123456.51),          'precision=0' );
+ok(compare_numbers(round(-1234567.509, 2), -1234567.51),   'negative thous' );
+ok(compare_numbers(round(-12345678.5, 2), -12345678.5),    'negative tenths' );
+ok(compare_numbers(round(-123456.78951, 4), -123456.7895), 'precision=4' );
+ok(compare_numbers(round(123456.78951, -2), 123500),       'precision=-2' );
+
+# Without the 1e-10 "epsilon" value in round(), the floating point
+# number math will result in 1 rather than 1.01 for this test.
+is(round(1.005, 2), 1.01, 'string-eq' );
+
+# Compare numbers within an epsilon value to avoid false negative
+# results due to floating point math
+sub compare_numbers
+{
+    my($p, $q) = @_;
+    return abs($p - $q) < 1e-10;
+}

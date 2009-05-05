@@ -1,12 +1,15 @@
 # -*- CPerl -*-
 
 use Test::More qw(no_plan);
+use strict;
+use warnings;
+
 use POSIX;
 setlocale(&LC_ALL, 'en_US');
 
 BEGIN { use_ok('Number::Format') }
 
-$pic = 'US$##,###,###.##';
+my $pic = 'US$##,###,###.##';
 my $x = Number::Format->new;
 $x->{neg_format} = '-x';
 is($x->format_picture(123456.512, $pic),    'US$    123,456.51',  'thou');
