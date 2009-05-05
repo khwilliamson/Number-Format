@@ -1,3 +1,19 @@
+Changes for version 1.72 (May 5, 2009)
+------------------------
+  - Use Makefile.PL based on suggestion in RT 38020
+  - Add 'use strict' & 'use warnings'
+  - Add MAX_INT constant for detecting overflows
+  - Add helper sub _get_multipliers for getting kilo/mega/giga mult values
+  - Add test in round() for overflow from large of a precision value (RT 40126)
+  - Add .5 + 1e-14 to rounded value instead of .5000001 (RT 20298)
+  - Fix undef $pic_prefix (RT 43029)
+  - Add support for giga and base option in unformat_number (RT 40455)
+  - Fix Russian locale issues, esp. in unformat_number (RT 40859)
+  - Remove variables from error messages (XSS risk) and standardize errors
+  - Remove requirement that decimal_point & thousands_sep be 1 char (for ru_RU)
+  - Add Russian and unformat_number tests in locale.t
+  - Add compare_numbers to test with an allowable error of 1e-10 in round.t
+
 Changes for version 1.71 (May 3, 2009)
 ------------------------
   - Changes to tests t/format_price.t, t/locale.t, and t/round.t to
