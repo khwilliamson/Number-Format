@@ -1,3 +1,9 @@
+Changes for version 1.73 (September 25, 2009)
+------------------------
+  - Fix locale.t for RUR/RUB distinction (thanks Kevin Phair; RT 46660/45833)
+  - Skip locale.t for BSD (thanks Zak B. Elep; RT 48481/46367)
+  - In _get_self add UNIVERSAL::isa check on ref (thanks Jordan Macdonald)
+
 Changes for version 1.72 (May 5, 2009)
 ------------------------
   - Use Makefile.PL based on suggestion in RT 38020

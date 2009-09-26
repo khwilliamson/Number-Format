@@ -211,7 +211,7 @@ our %EXPORT_TAGS = ( subs             => \@EXPORT_SUBS,
                      other_vars       => \@EXPORT_OTHER,
                      all              => \@EXPORT_ALL );
 
-our $VERSION = '1.72';
+our $VERSION = '1.73';
 
 # Refer to http://www.opengroup.org/onlinepubs/007908775/xbd/locale.html
 # for more details about the POSIX variables
@@ -311,7 +311,9 @@ use constant MAX_INT => 2**53;
 my $DefaultObject;
 sub _get_self
 {
-    unless (ref $_[0])
+    # Not calling $_[0]->isa because that may result in unblessed
+    # reference error
+    unless (ref $_[0] && UNIVERSAL::isa($_[0], "Number::Format"))
     {
         $DefaultObject ||= new Number::Format();
         unshift (@_, $DefaultObject);
@@ -1191,6 +1193,12 @@ sub unformat_number
 ###---------------------------------------------------------------------
 
 =back
+
+=head1 CAVEATS
+
+Some systems, notably OpenBSD, may have incomplete locale support.
+Using this module together with L<setlocale(3)> in OpenBSD may therefore
+not produce the intended results.
 
 =head1 BUGS
 

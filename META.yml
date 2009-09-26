@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                Number-Format
-version:             1.72
+version:             1.73
 abstract:            Perl extension for formatting numbers
 license:             perl
 author:              
