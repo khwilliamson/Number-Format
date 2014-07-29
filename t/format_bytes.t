@@ -4,6 +4,9 @@ use Test::More qw(no_plan);
 use strict;
 use warnings;
 
+use POSIX;
+setlocale(&LC_ALL, 'C');
+
 BEGIN { use_ok('Number::Format', ':subs') }
 
 is(format_bytes(123.51),                  '123.51',  'no change');

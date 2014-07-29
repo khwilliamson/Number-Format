@@ -5,7 +5,7 @@ use strict;
 use warnings;
 
 use POSIX;
-setlocale(&LC_ALL, 'en_US');
+setlocale(&LC_ALL, 'C');
 
 BEGIN { use_ok('Number::Format', ':subs') }
 
